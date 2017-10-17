@@ -69,6 +69,26 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		
 		/* CUSTOMERS. */
 		
+		public function create_customer() {
+			
+		}
+		
+		public function retrieve_customer() {
+			
+		}
+		
+		public function update_customer() {
+			
+		}
+		
+		public function delete_customer() {
+			
+		}
+		
+		public function list_customers() {
+			
+		}
+		
 		
 		/* DISPUTES. */
 		

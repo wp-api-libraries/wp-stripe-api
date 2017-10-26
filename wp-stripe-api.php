@@ -92,15 +92,112 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		
 		/* DISPUTES. */
 		
+		public function retrieve_dispute() {
+			
+		}
+		
+		public function update_dispute() {
+			
+		}
+		
+		public function close_dispute() {
+			
+		}
+		
+		public function list_all_disputes() {
+			
+		}
+		
 		/* EVENTS. */
+		
+		public function retrieve_event() {
+			
+		}
+		
+		public function list_all_events() {
+			
+		}
+		
 		
 		/* FILE UPLOADS. */
 		
+		public function create_file_upload() {
+			
+		}
+		
+		public function retreive_file_upload() {
+			
+		}
+		
+		public function list_all_uploads() {
+			
+		}
+		
 		/* PAYOUTS. */
+		
+		public function create_payout() {
+			
+		}
+		
+		public function retreive_payout() {
+			
+		}
+		
+		public function update_payout() {
+			
+		}
+		
+		public function list_all_payouts() {
+			
+		}
+		
+		public function cancel_payout() {
+			
+		}
 		
 		/* REFUNDS. */
 		
+		public function create_refund() {
+			
+		}
+		
+		public function retreive_refund() {
+			
+		}
+		
+		public function update_refund() {
+			
+		}
+		
+		public function list_all_refunds() {
+			
+		}
+		
 		/* TOKENS. */
+		
+		public function create_card_token() {
+			
+		}
+		
+		public function create_bank_account_token() {
+			
+		}
+		
+		public function create_pii_token() {
+			
+		}
+		
+		public function retrieve_token() {
+			
+		}
+		
+		/* ------------------- PAYMENT METHODS --------------------- */
+		
+		/* BANK ACCOUNTS. */
+		
+		/* CARDS. */
+		
+		/* SOURCES. */
 	
 
 	} // End Class;

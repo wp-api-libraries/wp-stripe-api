@@ -443,9 +443,41 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		
 		/* APPLICATION FEE REFUNDS. */
 		
+		public function create_application_fee_refund() {
+			
+		}
+		
+		public function retrieve_application_fee_refund() {
+			
+		}
+		
+		public function update_application_fee_refund() {
+			
+		}
+		
+		public function list_all_application_fee_refund() {
+			
+		}
+		
 		/* APPLICATION FEES. */
 		
+		public function retrieve_application_fee() {
+			
+		}
+		
+		public function list_all_application_fee() {
+			
+		}
+		
 		/* COUNTRY SPECS. */
+		
+		public function list_country_specs() {
+			
+		}
+		
+		public function retrieve_country_sepc() {
+			
+		}
 		
 		/* EXTERNAL ACCOUNTS. */
 		
@@ -491,9 +523,57 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		
 		/* PRODUCTS. */
 		
+		public function create_product() {
+			
+		}
+		
+		public function retrieve_product() {
+			
+		}
+		
+		public function update_product() {
+			
+		}
+		
+		public function list_all_products() {
+			
+		}
+		
+		public function delete_product() {
+			
+		}
+		
 		/* RETURNS. */
 		
+		public function retrieve_order_return() {
+			
+		}
+		
+		public function list_all_order_returns() {
+			
+		}
+		
 		/* SKUS. */
+		
+		public function create_sku() {
+			
+		}
+		
+		public function retrieve_sku() {
+			
+		}
+		
+		public function update_sku() {
+			
+		}
+		
+		public function list_all_skus() {
+			
+		}
+		
+		public function delete_sku() {
+			
+		}
 		
 		/* ------------------- SIGMA --------------------- */
 		

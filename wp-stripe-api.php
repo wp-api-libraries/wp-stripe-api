@@ -323,11 +323,91 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		
 		/* INVOICE ITEMS. */
 		
+		public function create_invoice_item() {
+			
+		}
+		
+		public function retrieve_invoice_item() {
+			
+		}
+		
+		public function update_invoice_item() {
+			
+		}
+		
+		public function delete_invoice_item() {
+			
+		}
+		
+		public function list_all_invoice_items() {
+			
+		}
+		
 		/* PLANS. */
+		
+		public function create_plan() {
+			
+		}
+		
+		public function retrieve_plan() {
+			
+		}
+		
+		public function update_plan() {
+			
+		}
+		
+		public function delete_plan() {
+			
+		}
+		
+		public function list_all_plans() {
+			
+		}
 		
 		/* SUBSCRIPTIONS. */
 		
+		public function create_subscription() {
+			
+		}
+		
+		public function retrieve_subscription() {
+			
+		}
+		
+		public function update_subscription() {
+			
+		}
+		
+		public function cancel_subscription() {
+			
+		}
+		
+		public function list_subscriptions() {
+			
+		}
+		
 		/* SUBSCRIPTION ITEMS. */
+		
+		public function create_subscription_item() {
+			
+		}
+		
+		public function retrieve_subscription_item() {
+			
+		}
+		
+		public function update_subscription_item() {
+			
+		}
+		
+		public function delete_subscription_item() {
+			
+		}
+		
+		public function list_all_subscription_items() {
+			
+		}
 		
 		/* ------------------- CONNECT --------------------- */
 		

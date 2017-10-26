@@ -463,6 +463,30 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		
 		/* ORDERS. */
 		
+		public function create_order() {
+			
+		}
+		
+		public function retrieve_order() {
+			
+		}
+		
+		public function update_order() {
+			
+		}
+		
+		public function pay_order() {
+			
+		}
+		
+		public function list_all_orders() {
+			
+		}
+		
+		public function return_order() {
+			
+		}
+		
 		/* ORDER ITEMS. */
 		
 		/* PRODUCTS. */

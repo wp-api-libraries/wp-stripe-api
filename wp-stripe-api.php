@@ -261,9 +261,65 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		
 		/* COUPONS. */
 		
+		public function create_coupon() {
+			
+		}
+		
+		public function retrieve_coupon() {
+			
+		}
+		
+		public function update_coupon() {
+			
+		}
+		
+		public function delete_coupon() {
+			
+		}
+		
+		public function list_all_coupons() {
+			
+		}
+		
 		/* DISCOUNTS. */
 		
+		public function delete_customer_discount() {
+			
+		}
+		
+		public function delete_subscription_discount() {
+			
+		}
+		
 		/* INVOICES. */
+		
+		public function create_invoice() {
+			
+		}
+		
+		public function retrieve_invoice() {
+			
+		}
+		
+		public function retrieve_invoice_line_items() {
+			
+		}
+		
+		public function retrieve_upcoming_invoice() {
+			
+		}
+		
+		public function update_invoice() {
+			
+		}
+		
+		public function pay_invoice() {
+			
+		}
+		
+		public function list_all_invoices() {
+			
+		}
 		
 		/* INVOICE ITEMS. */
 		
@@ -276,6 +332,34 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		/* ------------------- CONNECT --------------------- */
 		
 		/* ACCOUNT. */
+		
+		public function create_account() {
+			
+		}
+		
+		public function retrieve_account_details() {
+			
+		}
+		
+		public function update_account() {
+			
+		}
+		
+		public function delete_account() {
+			
+		}
+		
+		public function reject_account() {
+			
+		}
+		
+		public function list_all_connected_accounts() {
+			
+		}
+		
+		public function create_login_link() {
+			
+		}
 		
 		/* APPLICATION FEE REFUNDS. */
 		

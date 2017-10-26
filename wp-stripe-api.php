@@ -318,7 +318,61 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		public function list_all_scheduled_query_runs() {
 			
 		}
+		
+		/* ------------------- ERROR CODES --------------------- */
+		
+		/* HTTP ERROR CODES. */
+		
+		/**
+		 * HTTP response code messages.
+		 *
+		 * @param  [String] $code : Response code to get message from.
+		 * @return [String]       : Message corresponding to response code sent in.
+		 */
+		public function response_code_msg( $code = '' ) {
+			switch ( $code ) {
+				case 200:
+					$msg = __( 'OK. Everything worked as expected.', 'wp-stripe-api' );
+				break;
+				case 400:
+					$msg = __( 'Bad Request: The request was unacceptable, often due to missing a required parameter.', 'wp-stripe-api' );
+				break;
+				case 401:
+					$msg = __( 'Unauthorized: No valid API key provided.', 'wp-stripe-api' );
+				break;
+				case 402:
+					$msg = __( 'Request Failed: The parameters were valid but the request failed.', 'wp-stripe-api' );
+				break;
+				case 404:
+					$msg = __( 'Not Found: The requested resource does not exist.', 'wp-stripe-api' );
+				break;
+				case 409:
+					$msg = __( 'Conflict: The request conflicts with another request (perhaps due to using the same idempotent key).', 'wp-stripe-api' );
+				break;
+				case 429:
+					$msg = __( 'Too Many Requests: Too many requests hit the API too quickly. We recommend an exponential backoff of your requests.', 'wp-stripe-api' );
+				break;
+				case 500:
+					$msg = __( 'Server Errors: Something went wrong on Stripe\'s end. (These are rare.)', 'wp-stripe-api' );
+				break;
+				case 502:
+					$msg = __( 'Server Errors: Something went wrong on Stripe\'s end. (These are rare.)', 'wp-stripe-api' );
+				break;
+				case 503:
+					$msg = __( 'Server Errors: Something went wrong on Stripe\'s end. (These are rare.)', 'wp-stripe-api' );
+				break;
+				case 504:
+					$msg = __( 'Server Errors: Something went wrong on Stripe\'s end. (These are rare.)', 'wp-stripe-api' );
+				break;
+			}
+		}
+		
+		/* ERROR TYPES. */
+		
+		/* ERROR CODES. */
 	
 
 	} // End Class;
 }
+
+

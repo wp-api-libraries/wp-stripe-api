@@ -46,8 +46,6 @@ if ( ! class_exists( 'WpStripeBase' ) ) {
 			return $this;
 		}
 		protected function fetch() {
-      pp( $this->args );
-
 			$response = wp_remote_request( $this->base_uri . $this->route, $this->args );
 			// Retrieve status code and body.
 			$code = wp_remote_retrieve_response_code( $response );

@@ -46,7 +46,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		protected function set_headers(){
 			$this->args['headers'] = array(
-				'Authorization' => ' Bearer ' . $this->api_key
+				'Authorization' => ' Bearer ' . $this->api_key,
+				'Content-Type' => 'application/x-www-form-urlencoded'
 			);
 		}
 
@@ -116,8 +117,14 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		}
 
-		public function list_customers() {
+		public function list_customers( $limit = 100, $starting_after = null ) {
+			$args = array( 'limit' => $limit );
 
+			if( null !== $starting_after ){
+				$args['starting_after'] = $starting_after;
+			}
+
+			return $this->run( 'customers', $args );
 		}
 
 
@@ -206,7 +213,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		/* TOKENS. */
 
-		public function create_card_token() {
+		public function create_card_token(){
 
 		}
 
@@ -252,8 +259,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		/* CARDS. */
 
-		public function create_card() {
-
+		public function create_card( $customer_id, $card_token ) {
+			return $this->run( "customers/$customer_id/sources", array( 'source' => $card_token ), 'POST' );
 		}
 
 		public function retrieve_card() {

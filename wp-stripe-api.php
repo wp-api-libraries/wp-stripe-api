@@ -275,8 +275,17 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		}
 
-		public function list_all_cards() {
-
+		/**
+		 * You can see a list of the cards belonging to a customer or recipient. Note
+		 * that the 10 most recent sources are always available on the customer object.
+		 * If you need more than those 10, you can use this API method and the limit and
+		 * starting_after parameters to page through additional cards.
+		 *
+		 * @param  [type] $customer_id [description]
+		 * @return [type]              Returns a list of the cards stored on the customer, recipient, or account.
+		 */
+		public function list_all_cards( $customer_id ) {
+			return $this->run( "customers/$customer_id/sources", array( 'object' => 'card' ) );
 		}
 
 		/* SOURCES. */

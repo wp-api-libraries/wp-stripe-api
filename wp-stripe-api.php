@@ -63,6 +63,12 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		/* BALANCES. */
 
+		/**
+		 * Retrieves the current account balance, based on the authentication that was
+		 * used to make the request.
+		 *
+		 * @return object Returns a balance object for the account authenticated as.
+		 */
 		public function get_balance() {
 			// https://api.stripe.com/v1/balance
 			return $this->run( 'balance' );
@@ -81,27 +87,60 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 			return $this->run( 'balance/history/' . $transaction_id );
 		}
 
-		public function list_balance_history( $limit = null, $starting_after = null, $ending_before = null ) {
-			$args = array();
-
-			if( null !== $limit ){
-				$args['limit'] = intval( $limit );
-			}
-
-			if( null !== $starting_after ){
-				$args['starting_after'] = $starting_before;
-			}
-
-			if( null !== $ending_before ){
-				$args['ending_before'] = $ending_before;
-			}
-
+		/**
+		 * Returns a list of transactions that have contributed to the Stripe account
+		 * balance (e.g., charges, transfers, and so forth). The transactions are returned
+		 * in sorted order, with the most recent transactions appearing first.
+		 *
+		 * $args supports optional arguments:
+		 *   available_on:
+		 *     A filter on the list based on the object available_on field. The value can
+		 *     be a string with an integer Unix timestamp, or it can be a dictionary with
+		 *     the options lt, lte, gt, and/or gte.
+		 *   created:
+		 *     A filter on the list based on the object created field. The value can be
+		 *     a string with an integer Unix timestamp, or it can be a dictionary with
+		 *     the options lt, lte, gt, and/or gte.
+		 *   currency:
+		 *     A specified currency to filter by.
+		 *   ending_before:
+		 *     A cursor for use in pagination. ending_before is an object ID that defines
+		 *     your place in the list. For instance, if you make a list request and receive
+		 *     100 objects, starting with obj_bar, your subsequent call can include
+		 *     ending_before=obj_bar in order to fetch the previous page of the list.
+		 *   limit:
+		 *     A limit on the number of objects to be returned. Limit can range between
+		 *     1 and 100 items, and the default is 10 items.
+		 *   payout:
+		 *     For automatic Stripe payouts only, only returns transactions that were
+		 *     payed out on teh specified payout ID.
+		 *   source:
+		 *     Only returns the original transaction.
+		 *   starting_after:
+		 *     A cursor for use in pagination. starting_after is an object ID that defines
+		 *     your place in the list. For instance, if you make a list request and receive
+		 *     100 objects, ending with obj_foo, your subsequent call can include
+		 *     starting_after=obj_foo in order to fetch the next page of the list.
+		 *   type:
+		 *     Only returns transactions that are a charge, refund, adjustment, application_fee,
+		 *     application_fee_refund, transfer, payment, payout, payout_failure, or stripe_fee.
+		 *
+		 * @param  array  $args Additional arguments to supply to your query.
+		 * @return object       A dictionary with a data property that contains an array
+		 *                      of up to limit transactions, starting after transaction
+		 *                      starting_after. Each entry in the array is a separate
+		 *                      transaction history object. If no more transactions are
+		 *                      available, the resulting array will be empty.
+		 */
+		public function list_balance_history( $args = array() ) {
 			return $this->run( 'balance/history', $args );
 		}
 
 		/* CHARGES. */
 
 		/**
+		 * Create a charge
+		 *
 		 * To charge a credit card, you create a Charge object. If your API key is in
 		 * test mode, the supplied payment source (e.g., card) won't actually be charged,
 		 * though everything else will occur as if in live mode. (Stripe assumes that the
@@ -130,7 +169,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                          Supports 'application_fee', 'capture', 'description',
 		 *                          'destination', 'transfer_group', 'on_behalf_of', 'metadata',
 		 *                          'receipt_email', 'shipping', and 'statement_descriptor'.
-		 * @return object           Returns a Charge object if the charge succeeded. Returns
+		 * @return object           A charge object if the charge succeeded. Returns
 		 *                          an error if something goes wrong. A common source of error
 		 *                          is an invalid or expired card, or a valid card with insufficient
 		 *                          available balance.
@@ -165,13 +204,15 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Retrieve a charge
+		 *
 		 * Retrieves the details of a charge that has previously been created. Supply
 		 * the unique charge ID that was returned from your previous request, and Stripe
 		 * will return the corresponding charge information. The same information is
 		 * returned when creating or refunding the charge.
 		 *
 		 * @param  string $charge_id The identifier of the charge to be retrieved.
-		 * @return object            Returns a charge if a valid identifier was provided,
+		 * @return object            A charge if a valid identifier was provided,
 		 *                           and returns an error otherwise.
 		 */
 		public function retrieve_charge( $charge_id ) {
@@ -179,6 +220,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Update a charge
+		 *
 		 * Updates the specified charge by setting the values of the parameters passed.
 		 * Any parameters not provided will be left unchanged.
 		 *
@@ -189,7 +232,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array  $args      (Default: array()) Properties that you would like to update,
 		 *                           including and limited to customer, description, fraud_details,
 		 *                           metadata, receipt_email, and shipping arguments.
-		 * @return object            Returns the charge object if the update succeeded. This
+		 * @return object            The charge object if the update succeeded. This
 		 *                           call will return an error if update parameters are invalid.
 		 */
 		public function update_charge( $charge_id, $args = array() ) {
@@ -197,6 +240,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Capture a charge
+		 *
 		 * Capture the payment of an existing, uncaptured, charge. This is the second half
 		 * of the two-step payment flow, where first you created a charge with the capture
 		 * option set to false.
@@ -209,7 +254,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array  $args      (Default: array()) Arguments you may pass into the charge
 		 *                           being captured. Including and limited to amount, application_fee,
 		 *                           destination, receipt_email, statement_descriptor
-		 * @return object            Returns the charge object, with an updated captured property
+		 * @return object            The charge object, with an updated captured property
 		 *                           (set to true). Capturing a charge will always succeed,
 		 *                           unless the charge is already refunded, expired, captured,
 		 *                           or an invalid capture amount is specified, in which case
@@ -220,6 +265,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * List all charges
+		 *
 		 * Returns a list of charges you’ve previously created. The charges are returned
 		 * in sorted order, with the most recent charges appearing first.
 		 *
@@ -263,6 +310,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		/* CUSTOMERS. */
 
 		/**
+		 * Create a customer
+		 *
 		 * Creates a new customer object.
 		 *
 		 * $args argument supports the following properties.
@@ -319,6 +368,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Retrieve a customer
+		 *
 		 * Retrieves the details of an existing customer. You need only supply the
 		 * unique customer identifier that was returned upon customer creation.
 		 *
@@ -334,6 +385,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Update a customer
+		 *
 		 * Updates the specified customer by setting the values of the parameters passed.
 		 * Any parameters not provided will be left unchanged. For example, if you pass
 		 * the source parameter, that becomes the customer’s active source (e.g., a card)
@@ -353,7 +406,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                             a customer. Supports account_balance, business_vat_id,
 		 *                             coupon, default_source, description, email, metadata
 		 *                             shipping, source
-		 * @return object              Returns the customer object if the update succeeded.
+		 * @return object              The customer object if the update succeeded.
 		 *                             Returns an error if update parameters are invalid (e.g.
 		 *                             specifying an invalid coupon or an invalid source).
 		 */
@@ -362,6 +415,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Delete a customer
+		 *
 		 * Permanently deletes a customer. It cannot be undone. Also immediately cancels
 		 * any active subscriptions on the customer.
 		 *
@@ -382,6 +437,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * List all customers
+		 *
 		 * Returns a list of your customers. The customers are returned sorted by creation
 		 * date, with the most recent customers appearing first.
 		 *
@@ -406,6 +463,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *     your place in the list. For instance, if you make a list request and receive
 		 *     100 objects, ending with obj_foo, your subsequent call can include
 		 *     starting_after=obj_foo in order to fetch the next page of the list.
+		 *
 		 * @param  array  $args (Default: array()) An array of arguments that can
 		 *                      modify the query.
 		 * @return [type]       A dictionary with a data property that contains an array
@@ -424,6 +482,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		/* DISPUTES. */
 
 		/**
+		 * Retrieve a dispute
+		 *
 		 * Retrieves the dispute with the given ID.
 		 *
 		 * @param  string $dispute_id ID of dspute to retrieve.
@@ -435,6 +495,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Update a dispute
+		 *
 		 * When you get a dispute, contacting your customer is always the best first step.
 		 * If that doesn’t work, you can submit evidence in order to help us resolve the
 		 * dispute in your favor. You can do this in your dashboard, but if you prefer,
@@ -477,6 +539,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Close a dispute
+		 *
 		 * Closing the dispute for a charge indicates that you do not have any evidence
 		 * to submit and are essentially ‘dismissing’ the dispute, acknowledging it as lost.
 		 *
@@ -491,6 +555,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * List all disputes
+		 *
 		 * Get a list of all disputes.
 		 *
 		 * $args supports optional arguments:
@@ -526,6 +592,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		/* EVENTS. */
 
 		/**
+		 * Retrieve an event
+		 *
 		 * Retrieves the details of an event. Supply the unique identifier of the event,
 		 * which you might have received in a webhook.
 		 *
@@ -548,6 +616,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * List all events
+		 *
 		 * List events, going back up to 30 days.
 		 *
 		 * $args supports optional query arguments:
@@ -590,6 +660,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		/* FILE UPLOADS. */
 
 		/**
+		 * Create a file upload
+		 *
 		 * To upload a file to Stripe, you’ll need to send a request of type multipart/form-data.
 		 * The request should contain the file you would like to upload, as well as the
 		 * parameters for creating a file.
@@ -603,7 +675,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  string $purpose   The purpose of the uploaded file. Possible values are
 		 *                           customer_signature, dispute_evidence, identity_document,
 		 *                           tax_document_user_upload.
-		 * @return object            Returns the file object.
+		 * @return object            The file object.
 		 */
 		public function create_file_upload( $file_path, $purpose ) {
 			$args = array(
@@ -615,12 +687,14 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Retrieve a file upload
+		 *
 		 * Retrieves the details of an existing file object. Supply the unique file upload
 		 * ID from a file creation request, and Stripe will return the corresponding
 		 * transfer information.
 		 *
 		 * @param  string $file_id The identifier of the file upload to be retrieved.
-		 * @return object          Returns a file upload object if a valid identifier
+		 * @return object          A file upload object if a valid identifier
 		 *                         was provided, and returns an error otherwise.
 		 */
 		public function retreive_file_upload( $file_id ) {
@@ -628,6 +702,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * List all file uploads
+		 *
 		 * Returns a list of the files that you have uploaded to Stripe. The file uploads
 		 * are returned sorted by creation date, with the most recently created file
 		 * uploads appearing first.
@@ -667,6 +743,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		/* PAYOUTS. */
 
 		/**
+		 * Create a payout
+		 *
 		 * To send funds to your own bank account, you create a new payout object.
 		 * Your Stripe balance must be able to cover the payout amount, or you’ll
 		 * receive an “Insufficient Funds” error.
@@ -725,6 +803,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Retrieve a payout
+		 *
 		 * Retrieves the details of an existing payout. Supply the unique payout ID
 		 * from either a payout creation request or the payout list, and Stripe will
 		 * return the corresponding payout information.
@@ -738,6 +818,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Update a payout
+		 *
 		 * Updates the specified payout by setting the values of the parameters passed.
 		 * Any parameters not provided will be left unchanged. This request accepts only
 		 * the metadata as arguments.
@@ -754,6 +836,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * List all payouts
+		 *
 		 * Returns a list of existing payouts sent to third-party bank accounts or that
 		 * Stripe has sent you. The payouts are returned in sorted order, with the most
 		 * recently created payouts appearing first.
@@ -792,12 +876,14 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Cancel a payout
+		 *
 		 * A dictionary with a data property that contains an array of up to limit payouts,
 		 * starting after payout starting_after. Each entry in the array is a separate payout
 		 * object. If no more payouts are available, the resulting array will be empty.
 		 *
 		 * @param  string $payout_id The identifier of the payout to be canceled.
-		 * @return object            Returns a the payout object if the cancellation succeeded.
+		 * @return object            A the payout object if the cancellation succeeded.
 		 *                           Returns an error if the payout has already been canceled
 		 *                           or cannot be canceled.
 		 */
@@ -808,6 +894,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		/* REFUNDS. */
 
 		/**
+		 * Create a refund
+		 *
 		 * When you create a new refund, you must specify a charge to create it on.
 		 *
 		 * Creating a new refund will refund a charge that has previously been created
@@ -835,10 +923,12 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Retrieve a refund
+		 *
 		 * Retrieves the details of an existing refund.
 		 *
 		 * @param  string $refund_id ID of refund to retrieve.
-		 * @return object            Returns a refund if a valid ID was provided.
+		 * @return object            A refund if a valid ID was provided.
 		 *                           Returns an error otherwise.
 		 */
 		public function retreive_refund( $refund_id ) {
@@ -846,6 +936,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Update a refund
+		 *
 		 * Updates the specified refund by setting the values of the parameters passed.
 		 * Any parameters not provided will be left unchanged.
 		 *
@@ -856,7 +948,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                           you can attach to a refund object. It can be useful
 		 *                           for storing additional information about the refund
 		 *                           in a structured format.
-		 * @return object            Returns the refund object if the update succeeded.
+		 * @return object            The refund object if the update succeeded.
 		 *                           This call will return an error if update parameters are invalid.
 		 */
 		public function update_refund( $refund_id, $metadata ) {
@@ -864,6 +956,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * List all refunds
+		 *
 		 * Returns a list of all refunds you’ve previously created. The refunds are
 		 * returned in sorted order, with the most recent refunds appearing first. For
 		 * convenience, the 10 most recent refunds are always available by default on
@@ -901,6 +995,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		/* TOKENS. */
 
 		/**
+		 * Create a card token
+		 *
 		 * Creates a single use token that wraps the details of a credit card. This token
 		 * can be used in place of a credit card dictionary with any API method. These
 		 * tokens can only be used once: by creating a new charge object, or attaching
@@ -935,6 +1031,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Create a bank account token
+		 *
 		 * Creates a single use token that wraps the details of a bank account. This token
 		 * can be used in place of a bank account dictionary with any API method. These
 		 * tokens can only be used once: by attaching them to a recipient or Custom account.
@@ -965,6 +1063,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Create a PII token
+		 *
 		 * Creates a single use token that wraps the details of personally identifiable
 		 * information (PII). This token can be used in place of a personal_id_number
 		 * in the Account Update API method. These tokens can only be used once.
@@ -978,6 +1078,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Create an account token
+		 *
 		 * Creates a single-use token that wraps the legal entity information of a user
 		 * for use when creating and updating a Connect account. See the account tokens
 		 * documentation to learn more.
@@ -1009,10 +1111,12 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
+		 * Retrieve a token
+		 *
 		 * Retrieves the token with the given ID.
 		 *
 		 * @param  string $token_id The ID of the desired token.
-		 * @return object           Returns a token if a valid ID was provided.
+		 * @return object           A token if a valid ID was provided.
 		 *                          Returns an error otherwise.
 		 */
 		public function retrieve_token( $token_id ) {
@@ -1023,117 +1127,763 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		/* BANK ACCOUNTS. */
 
-		public function create_bank_account() {
+		/**
+		 * Create a bank account
+		 *
+		 * When you create a new bank account, you must specify a Customer to create it on.
+		 *
+		 * $source supports additional arguments:
+		 *
+		 * required:
+		 *   object:
+		 *     The type of external account. Should be "bank_account".
+		 *   account_number:
+		 *     The account number for the bank account in string form. Must be a
+		 *     checking account.
+		 *   country:
+		 *     The country the bank account is in.
+		 *   currency:
+		 *     The currency the bank account is in. This must be a country/currency
+		 *     pairing that Stripe supports.
+		 * optional:
+		 *   account_holder_name:
+		 *     The name of the person or business that owns the bank account. This field
+		 *     is required when attaching the bank account to a customer object.
+		 *   account_holder_type:
+		 *     The type of entity that holds the account. This can be either "individual" or
+		 *     "company". This field is required when attaching the bank account to a customer object.
+		 *   routing_number:
+		 *     The routing number, sort code, or other country-appropriate institution
+		 *     number for the bank account. For US bank accounts, this is required and
+		 *     should be the ACH routing number, not the wire routing number. If you are
+		 *     providing an IBAN for account_number, this field is not required.
+		 *
+		 * @param  string $customer_id The customer ID to be associated with.
+		 * @param  mixed  $source      Either a token, like the ones returned by Stripe.js,
+		 *                             or a dictionary array containing a user’s bank account
+		 *                             details (with the options shown below).
+		 * @param  array  $metadata    (Default: array()) A set of key/value pairs that you
+		 *                             can attach to a card object. It can be useful for storing
+		 *                             additional information about the card in a structured format.
+		 * @return object              The bank account object.
+		 */
+		public function create_bank_account( $customer_id, $source, $metadata = array() ) {
+			$args = array(
+				'source' => $source
+			);
 
+			if( ! empty( $metadata ) ){
+				$args['metadata'] = $metadata;
+			}
+
+			return $this->run( 'customers/'.$customer_id.'/sources', $args, 'POST' );
 		}
 
-		public function retrieve_bank_account() {
-
+		/**
+		 * Retrieve a bank account
+		 *
+		 * By default, you can see the 10 most recent sources stored on a Customer directly
+		 * on the object, but you can also retrieve details about a specific bank account
+		 * stored on the Stripe account.
+		 *
+		 * @param  string $customer_id The ID of the bank account to retrieve.
+		 * @param  string $account_id  The ID of the customer to retrieve.
+		 * @return object              The bank account object.
+		 */
+		public function retrieve_bank_account( $customer_id, $account_id ) {
+			return $this->run( 'customers/'.$customer_id.'/sources/'.$account_id );
 		}
 
-		public function update_bank_account() {
-
+		/**
+		 * Update a bank account
+		 *
+		 * Updates the metadata, account_holder_name, and account_holder_type of a bank
+		 * account belonging to a Customer. Other bank account details are not editable by design.
+		 *
+		 * @param  string $customer_id The ID of the customer whose account is being updated.
+		 * @param  string $account_id  The ID of the account to be updated.
+		 * @param  array  $args        (Default: array()) Arguments to pass.
+		 * @return object              The bank account object.
+		 */
+		public function update_bank_account( $customer_id, $account_id, $args = array() ) {
+			return $this->run( 'customers/'.$customer_id.'/sources/'.$account_id, $args, 'POST' );
 		}
 
-		public function verify_bank_account() {
+		/**
+		 * Verify a bank account
+		 *
+		 * A customer's bank account must first be verified before it can be charged.
+		 * Stripe supports instant verification using Plaid for many of the most popular
+		 * banks. If your customer's bank is not supported or you do not wish to integrate
+		 * with Plaid, you must manually verify the customer's bank account using the API.
+		 *
+		 * @param  string $customer_id The ID of the customer whose account is being verified.
+		 * @param  string $account_id  The ID of the account to be verified.
+		 * @param  array  $amounts     Two positive integers in cents equal to the values of
+		 *                             the microdeposits sent to the bank account.
+		 * @param  string $method      The verification method...?
+		 * @return object              The bank account object with a status of verified.
+		 */
+		public function verify_bank_account( $customer_id, $account_id, $amounts = array(), $verification_method = null ) {
+			$args = array();
 
+			if( ! empty( $amounts ) ){
+				$args['amounts'] = array(
+					intval( $amounts[0] ) % 100,
+					intval( $amounts[1] ) % 100
+				);
+			}
+
+			if( null !== $verification_method ){
+				$args['verification_method'] = $verification_method;
+			}
+
+			return $this->run( 'customers/'.$customer_id.'/sources/'.$account_id, $args, 'POST' );
 		}
 
-		public function delete_bank_account() {
-
+		/**
+		 * Delete a bank account
+		 *
+		 * You can delete bank accounts from a Customer.
+		 *
+		 * @param  string $customer_id The ID of the customer whose account is being deleted.
+		 * @param  string $account_id  The ID of the account to be deleted.
+		 * @return object              The deleted bank account object.
+		 */
+		public function delete_bank_account( $customer_id, $account_id ) {
+			return $this->run( 'customers/'.$customer_id.'/sources/'.$account_id, array(), 'DELETE' );
 		}
 
-		public function list_bank_accounts() {
-
+		/**
+		 * List all bank accounts
+		 *
+		 * You can see a list of the bank accounts belonging to a Customer. Note that
+		 * the 10 most recent sources are always available by default on the Customer.
+		 * If you need more than those 10, you can use this API method and the limit
+		 * and starting_after parameters to page through additional bank accounts.
+		 *
+		 * $args supports additional optional query properties:
+		 *   ending_before:
+		 *     A cursor for use in pagination. ending_before is an object ID that defines
+		 *     your place in the list. For instance, if you make a list request and receive
+		 *     100 objects, starting with obj_bar, your subsequent call can include
+		 *     ending_before=obj_bar in order to fetch the previous page of the list.
+		 *   limit:
+		 *     A limit on the number of objects to be returned. Limit can range between
+		 *     1 and 100 items, and the default is 10 items.
+		 *   starting_after:
+		 *     A cursor for use in pagination. starting_after is an object ID that defines
+		 *     your place in the list. For instance, if you make a list request and
+		 *     receive 100 objects, ending with obj_foo, your subsequent call can include
+		 *     starting_after=obj_foo in order to fetch the next page of the list.
+		 *
+		 * @param  string $customer_id The ID of the customer.
+		 * @param  array  $args        (Default array()) Additional arguments to filter by.
+		 * @return object              A list of the bank accounts stored on the customer.
+		 */
+		public function list_bank_accounts( $customer_id, $args = array() ) {
+			return $this->run( 'customers/'.$customer_id.'/sources/'.$account_id, $args );
 		}
 
 		/* CARDS. */
 
-		public function create_card( $customer_id, $card_token ) {
-			return $this->run( "customers/$customer_id/sources", array( 'source' => $card_token ), 'POST' );
-		}
+		/**
+		 * Create a card
+		 *
+		 * When you create a new credit card, you must specify a customer or recipient
+		 * to create it on.
+		 *
+		 * If the card's owner has no default card, then the new card will become the
+		 * default. However, if the owner already has a default then it will not change.
+		 * To change the default, you should either update the customer to have a new
+		 * default_source or update the recipient to have a new default_card.
+		 *
+		 * If you're not passing a token into $source, then you pass an array:
+		 * required properties:
+		 *   object:
+		 *     The type of payment source. Should be "card".
+		 *   exp_month:
+		 *     Two digit number representing the card's expiration month.
+		 *   exp_year:
+		 *     Two or four digit number representing the card's expiration year.
+		 *   number:
+		 *     The card number, as a string without any separators.
+		 *   cvc:
+		 *     Card security code. Highly recommended to always include this value,
+		 *     but it's only required for accounts based in European countries.
+		 * optional properties:
+		 *   address_city:
+		 *     City/District/Suburb/Town/Village.
+		 *   address_country:
+		 *     Billing address country, if provided when creating card.
+		 *   address_line1:
+		 *     Address line 1 (Street address/PO Box/Company name).
+		 *   address_line2:
+		 *     Address line 2 (Apartment/Suite/Unit/Building).
+		 *   address_state:
+		 *     State/County/Province/Region.
+		 *   address_zip:
+		 *     Zip/Postal Code.
+		 *   currency:
+		 *     Required when adding a card to an account (not applicable to a customers
+		 *     or recipients). The card (which must be a debit card) can be used as a
+		 *     transfer destination for funds in this currency. Currently, the only
+		 *     supported currency for debit card transfers is usd.
+		 *   cvc:
+		 *     Card security code. Highly recommended to always include this value, but
+		 *     it's only required for accounts based in European countries.
+		 *   default_for_currency:
+		 *     Only applicable on accounts (not customers or recipients). If you set this
+		 *     to true (or if this is the first external account being added in this
+		 *     currency) this card will become the default external account for its currency.
+		 *   metadata:
+		 *     A set of key/value pairs that you can attach to a card object. It can be
+		 *     useful for storing additional information about the card in a structured format.
+		 *   name:
+		 *     Cardholder's full name.
+		 *   metadata:
+		 *     A set of key/value pairs that you can attach to a card object. It can be
+		 *     useful for storing additional information about the card in a structured format.
+		 *
+		 * @param  string $customer_id The ID of the customer.
+		 * @param  mixed  $source      Either a token, like the ones returned by Stripe.js,
+		 *                             or a dictionary containing a user's credit card details
+		 *                             (with the options shown above). Stripe will
+		 *                             automatically validate the card.
+		 * @param  array  $metadata    A set of key/value pairs that you can attach to a
+		 *                             card object. It can be useful for storing additional
+		 *                             information about the card in a structured format.
+		 * @return object              The card object.
+		 */
+		public function create_card( $customer_id, $source, $metadata = array() ) {
+			$args = array(
+				'source' => $source,
+			);
 
-		public function retrieve_card() {
+			if( ! empty( $metadata ) ){
+				$args['metadata'] = $metadata;
+			}
 
-		}
-
-		public function update_card() {
-
-		}
-
-		public function delete_card() {
-
+			return $this->run( 'customers/'.$customer_id.'/sources', $args, 'POST' );
 		}
 
 		/**
+		 * Retrieve a card
+		 *
+		 * You can always see the 10 most recent cards directly on a customer or recipient;
+		 * this method lets you retrieve details about a specific card stored on the
+		 * customer or recipient.
+		 *
+		 * @param  string $customer_id The ID of the customer.
+		 * @param  string $card_id     The ID of the card.
+		 * @return object              The card object.
+		 */
+		public function retrieve_card( $customer_id, $card_id ) {
+			return $this->run( 'customers/'.$customer_id.'/sources/'.$source_id );
+		}
+
+		/**
+		 * Update a card
+		 *
+		 * If you need to update only some card details, like the billing address or
+		 * expiration date, you can do so without having to re-enter the full card details.
+		 * Stripe also works directly with card networks so that your customers can continue
+		 * using your service without interruption.
+		 *
+		 * When you update a card, Stripe will automatically validate the card.
+		 *
+		 * $args supports optional parameters:
+		 *   address_city:
+		 *     City/District/Suburb/Town/Village.
+		 *   address_country:
+		 *     Billing address country, if provided when creating card.
+		 *   address_line1:
+		 *     Address line 1 (Street address/PO Box/Company name).
+		 *   address_line2:
+		 *     Address line 2 (Apartment/Suite/Unit/Building).
+		 *   address_state:
+		 *     State/County/Province/Region.
+		 *   address_zip:
+		 *     ZIP or postal code
+		 *   exp_month:
+		 *     Two digit number representing the card’s expiration month.
+		 *   exp_year:
+		 *     Four digit number representing the card’s expiration year.
+		 *   metadata:
+		 *     Additional metadata.
+		 *   name:
+		 *     Cardholder name.
+		 * @param  [type] $customer_id [description]
+		 * @param  [type] $card_id     [description]
+		 * @param  array  $args        [description]
+		 * @return [type]              [description]
+		 */
+		public function update_card( $customer_id, $card_id, $args = array() ) {
+			return $this->run( 'customers/'.$customer_id.'/sources/'.$card_id, $args, 'POST' );
+		}
+
+		/**
+		 * Delete a card
+		 *
+		 * You can delete cards from a customer or recipient.
+		 *
+		 * For customers: if you delete a card that is currently the default source,
+		 * then the most recently added source will become the new default. If you
+		 * delete a card that is the last remaining source on the customer then the
+		 * default_source attribute will become null.
+		 *
+		 * For recipients: if you delete the default card, then the most recently added
+		 * card will become the new default. If you delete the last remaining card on
+		 * a recipient, then the default_card attribute will become null.
+		 *
+		 * Note that for cards belonging to customers, you may want to prevent customers
+		 * on paid subscriptions from deleting all cards on file so that there is at
+		 * least one default card for the next invoice payment attempt.
+		 *
+		 * @param  string $customer_id The ID of the customer.
+		 * @param  string $card_id     The ID of the card.
+		 * @return object              The deleted card object.
+		 */
+		public function delete_card( $customer_id, $card_id ) {
+			return $this->run( 'customers/'.$customer_id.'/sources/'.$card_id, array(), 'DELETE' );
+		}
+
+		/**
+		 * List all cards
+		 *
 		 * You can see a list of the cards belonging to a customer or recipient. Note
 		 * that the 10 most recent sources are always available on the customer object.
 		 * If you need more than those 10, you can use this API method and the limit and
 		 * starting_after parameters to page through additional cards.
 		 *
-		 * @param  [type] $customer_id [description]
-		 * @return [type]              Returns a list of the cards stored on the customer, recipient, or account.
+		 * $args supports additional optional query properties:
+		 *   ending_before:
+		 *     A cursor for use in pagination. ending_before is an object ID that defines
+		 *     your place in the list. For instance, if you make a list request and receive
+		 *     100 objects, starting with obj_bar, your subsequent call can include
+		 *     ending_before=obj_bar in order to fetch the previous page of the list.
+		 *   limit:
+		 *     A limit on the number of objects to be returned. Limit can range between
+		 *     1 and 100 items, and the default is 10 items.
+		 *   starting_after:
+		 *     A cursor for use in pagination. starting_after is an object ID that defines
+		 *     your place in the list. For instance, if you make a list request and
+		 *     receive 100 objects, ending with obj_foo, your subsequent call can include
+		 *     starting_after=obj_foo in order to fetch the next page of the list.
+		 *
+		 * @param  string $customer_id The ID of the customer.
+		 * @param  array  $args        (Default: array()) Additional arguments to filter by.
+		 * @return object              A list of the cards stored on the customer,
+		 *                             recipient, or account.
 		 */
-		public function list_cards( $customer_id ) {
-			return $this->run( "customers/$customer_id/sources", array( 'object' => 'card' ) );
+		public function list_cards( $customer_id, $args = array() ) {
+			return $this->run( 'customers/'.$customer_id.'/sources', $args );
 		}
 
 		/* SOURCES. */
 
-		public function create_source() {
+		/**
+		 * Create a source
+		 *
+		 * Creates a new source object.
+		 *
+		 * $args supports additional properties:
+		 *   amount:
+		 *     Amount associated with the source. This is the amount for which the source
+		 *     will be chargeable once ready. Required for single_use sources.
+		 *   currency:
+		 *     Three-letter ISO code for the currency associated with the source. This
+		 *     is the currency for which the source will be chargeable once ready.
+		 *   flow:
+		 *     The authentication flow of the source to create. flow is one of redirect,
+		 *     receiver, code_verification, none. It is generally inferred unless a
+		 *     type supports multiple flows.
+		 *   mandate:
+		 *     Information about a mandate possiblity attached to a source object (generally
+		 *     for bank debits) as well as its acceptance status.
+		 *   metadata:
+		 *     A set of key/value pairs that you can attach to a source object. It can be
+		 *     useful for storing additional information about the source in a structured format.
+		 *   owner:
+		 *     Information about the owner of the payment instrument that may be used or
+		 *     required by particular source types.
+		 *   receiver:
+		 *     Optional parameters for the receiver flow. Can be set only if the source
+		 *     is a receiver (flow is receiver).
+		 *   redirect:
+		 *     Parameters required for the redirect flow. Required if the source is authenticated
+		 *     by a redirect (flow is redirect).
+		 *   statement_descriptor:
+		 *     An arbitrary string to be displayed on your customer’s statement. As an
+		 *     example, if your website is RunClub and the item you’re charging for is a
+		 *     race ticket, you may want to specify a statement_descriptor of RunClub 5K
+		 *     race ticket. While many payment types will display this information, some
+		 *     may not display it at all.
+		 *   token:
+		 *     An optional token used to create the source. When passed, token properties
+		 *     will override source parameters.
+		 *   usage:
+		 *     Either reusable or single_use. Whether this source should be reusable or
+		 *     not. Some source types may or may not be reusable by construction, while
+		 *     other may leave the option at creation. If an incompatible value is
+		 *     passed, an error will be returned.
+		 *
+		 * @param  string $type The type of the source to create. Required unless customer and orginal_source are specified (see the Shared card Sources guide)
+		 * @param  array  $args (Default: array()) Additional arguments.
+		 * @return object       A newly created source.
+		 */
+		public function create_source( $type, $args = array() ) {
+			$args['type'] = $type;
 
+			return $this->run( 'sources', $args, 'POST' );
 		}
 
-		public function retrieve_source() {
+		/**
+		 * Retrieve a source
+		 *
+		 * Retrieves an existing source object. Supply the unique source ID from a
+		 * source creation request and Stripe will return the corresponding up-to-date
+		 * source object information.
+		 *
+		 * @param  string $source_id     The ID of the source.
+		 * @param  string $client_secret (Default: null) The client secret of the source.
+		 *                               Required if a publishable key is used to
+		 *                               retrieve the source.
+		 * @return object                A source if a valid identifier is provided.
+		 */
+		public function retrieve_source( $source_id, $client_secret = null ) {
+			$args = array();
 
+			if( null !== $client_secret ){
+					$args['client_secret'] = $client_secret;
+			}
+
+			return $this->run( 'sources/'.$source_id, $args );
 		}
 
-		public function update_source() {
-
+		/**
+		 * Update a source
+		 *
+		 * Updates the specified source by setting the values of the parameters passed.
+		 * Any parameters not provided will be left unchanged.
+		 *
+		 * This request accepts the metadata and owner as arguments. It is also possible
+		 * to update type specific information for selected payment methods. Please refer
+		 * to our payment method guides for more detail.
+		 *
+		 * @param  string $source_id The ID of the source.
+		 * @param  array  $args      (Default: array()) Properties to modify for the source.
+		 * @return object            The source object if the update succeeded. This call
+		 *                           will return an error if update parameters are invalid.
+		 */
+		public function update_source( $source_id, $args = array() ) {
+			return $this->run( 'sources/'.$source_id, $args, 'POST' );
 		}
+
+		/**
+		 * Attach a source
+		 *
+		 * Attaches a Source object to a Customer.
+		 *
+		 * The source must be in a chargeable state.
+		 *
+		 * @param  string $customer_id The identifier of the customer to be attached to.
+		 * @param  string $source_id   The identifier of the source to be attached.
+		 * @return object              The attached source object.
+		 */
+		public function attach_source( $customer_id, $source_id ) {
+			return $this->run( 'customers/'.$customer_id.'/sources', array( 'source' => $source_id ), 'POST' );
+		}
+
+		/**
+		 * Detach a source
+		 *
+		 * Detaches a Source object from a Customer. The status of a source is changed to
+		 * consumed when it is detached and it can no longer be used to create a charge.
+		 *
+		 * @param  string $customer_id The ID of the customer to be detached from.
+		 * @param  string $source_id   The ID of the source to be detached.
+		 * @return object              The detached source object.
+		 */
+		public function detach_source( $customer_id, $source_id ) {
+			return $this->run( 'customers/'.$customer_id.'/sources/'.$source_id, array(), 'DELETE' );
+		}
+
 
 		/* ------------------- SUBSCRIPTIONS --------------------- */
 
 		/* COUPONS. */
 
-		public function create_coupon() {
+		/**
+		 * Create a coupon
+		 *
+		 * You can create coupons easily via the coupon management page of the Stripe
+		 * dashboard. Coupon creation is also accessible via the API if you need to
+		 * create coupons on the fly.
+		 *
+		 * A coupon has either a percent_off or an amount_off and currency. If you set
+		 * an amount_off, that amount will be subtracted from any invoice’s subtotal.
+		 * For example, an invoice with a subtotal of $100 will have a final total of
+		 * $0 if a coupon with an amount_off of 20000 is applied to it and an invoice
+		 * with a subtotal of $300 will have a final total of $100 if a coupon with
+		 * an amount_off of 20000 is applied to it.
+		 *
+		 * $args requires certain arguments, and supports several others:
+		 * required:
+		 *   duration:
+		 *     Specifies how long the discount will be in effect. Can be forever,
+		 *     once, or repeating.
+		 *   amount_off:
+		 *     A positive integer representing the amount to subtract from an invoice
+		 *     total (required if percent_off is not passed).
+		 *   percent_off:
+		 *     A positive integer between 1 and 100 that represents the discount the
+		 *     coupon will apply (required if amount_off is not passed).
+		 *
+		 * optional:
+		 *   id:
+		 *     Unique string of your choice that will be used to identify this coupon
+		 *     when applying it to a customer. This is often a specific code you’ll
+		 *     give to your customer to use when signing up (e.g., FALL25OFF). If you
+		 *     don’t want to specify a particular code, you can leave the ID blank
+		 *     and we’ll generate a random code for you.
+		 *   currency:
+		 *     Three-letter ISO code for the currency of the amount_off parameter
+		 *     (required if amount_off is passed).
+		 *   duration_in_months:
+		 *     Required only if duration is repeating, in which case it must be a positive
+		 *     integer that specifies the number of months the discount will be in effect.
+		 *   max_redemptions:
+		 *     A positive integer specifying the number of times the coupon can be
+		 *     redeemed before it’s no longer valid. For example, you might have a 50%
+		 *     off coupon that the first 20 readers of your blog can use.
+		 *   metadata:
+		 *     A set of key/value pairs that you can attach to a coupon object.
+		 *     It can be useful for storing additional information about the coupon i
+		 *     n a structured format.
+		 *   percent_off:
+		 *     A positive integer between 1 and 100 that represents the discount the
+		 *     coupon will apply (required if amount_off is not passed).
+		 *   redeem_by:
+		 *     Unix timestamp specifying the last time at which the coupon can be redeemed.
+		 *     After the redeem_by date, the coupon can no longer be applied to new customers.
+		 *
+		 * @param  array  $args Arguments for the coupon.
+		 * @return object       The coupon object.
+		 */
+		public function create_coupon( $args = array() ) {
+			if( ! isset( $args['duration'] ) ){
+				return new WP_Error( 'invalid-data', __( 'Duration field must be defined.', 'wp-stripe-api' ), array( 'status' => 400 ) );
+			}
 
+			if( ! isset( $args['percent_off'] ) && ! isset( $args['amount_off'] ) ){
+				return new WP_Error( 'invalid-data', __( 'You must pass either percent_off or amount_off.', 'wp-stripe-api' ), array( 'status' => 400 ) );
+			}
+
+			return $this->run( 'coupons', $args, 'POST' );
 		}
 
-		public function retrieve_coupon() {
-
+		/**
+		 * Retrieve a coupon
+		 *
+		 * Retrieves the coupon with the given ID.
+		 *
+		 * @param  string $coupon_id The ID of the desired coupon.
+		 * @return object            A coupon if a valid coupon ID was provided.
+		 *                           Returns an error otherwise.
+		 */
+		public function retrieve_coupon( $coupon_id ) {
+			return $this->run( 'coupons/'.$coupon_id );
 		}
 
-		public function update_coupon() {
-
+		/**
+		 * Update a coupon
+		 *
+		 * Updates the metadata of a coupon. Other coupon details (currency, duration, amount_off) are, by design, not editable.
+		 *
+		 * @param  string $coupon_id The identifier of the coupon to be updated.
+		 * @param  array  $metadata  A set of key/value pairs that you can attach to a
+		 *                           coupon object. It can be useful for storing additional
+		 *                           information about the coupon in a structured format.
+		 * @return object            The newly updated coupon object if the call succeeded.
+		 *                           Otherwise, this call returns an error, such as if the
+		 *                           coupon has been deleted.
+		 */
+		public function update_coupon( $coupon_id, $metadata = array() ) {
+			return $this->run( 'coupons/'.$coupon_id, array( 'metadata' => $metadata ), 'POST' );
 		}
 
-		public function delete_coupon() {
-
+		/**
+		 * Delete a coupon
+		 *
+		 * You can delete coupons via the coupon management page of the Stripe dashboard.
+		 * However, deleting a coupon does not affect any customers who have already
+		 * applied the coupon; it means that new customers can’t redeem the coupon.
+		 * You can also delete coupons via the API.
+		 *
+		 * @param  string $coupon_id The identifier of the coupon to be deleted.
+		 * @return object            An object with the deleted coupon’s ID and a deleted
+		 *                           flag upon success. Otherwise, this call returns an
+		 *                           error, such as if the coupon has already been deleted.
+		 */
+		public function delete_coupon( $coupon_id ) {
+			return $this->run( 'coupons/'.$coupon_id, array(), 'DELETE' );
 		}
 
-		public function list_coupons() {
-
+		/**
+		 * List all coupons
+		 *
+		 * $args supports additional optional query properties:
+		 *   created:
+		 *     A filter on the list based on the object created field. The value can be
+		 *     a string with an integer Unix timestamp, or it can be a dictionary with a
+		 *     number of different query options, gt, gte, lt, and/or lte.
+		 *   ending_before:
+		 *     A cursor for use in pagination. ending_before is an object ID that defines
+		 *     your place in the list. For instance, if you make a list request and receive
+		 *     100 objects, starting with obj_bar, your subsequent call can include
+		 *     ending_before=obj_bar in order to fetch the previous page of the list.
+		 *   limit:
+		 *     A limit on the number of objects to be returned. Limit can range between
+		 *     1 and 100 items, and the default is 10 items.
+		 *   starting_after:
+		 *     A cursor for use in pagination. starting_after is an object ID that defines
+		 *     your place in the list. For instance, if you make a list request and
+		 *     receive 100 objects, ending with obj_foo, your subsequent call can include
+		 *     starting_after=obj_foo in order to fetch the next page of the list.
+		 *
+		 * @param  array  $args (Default: array()) Additional arguments to filter by.
+		 * @return object       A dictionary with a data property that contains an array
+		 *                      of up to limit coupons, starting after coupon starting_after.
+		 *                      Each entry in the array is a separate coupon object. If no
+		 *                      more coupons are available, the resulting array will be
+		 *                      empty. This request should never return an error.
+		 */
+		public function list_coupons( $args = array() ) {
+			return $this->run( 'coupons', $args );
 		}
 
 		/* DISCOUNTS. */
 
-		public function delete_customer_discount() {
-
+		/**
+		 * Delete a customer discount
+		 *
+		 * Removes the currently applied discount on a customer.
+		 *
+		 * @param  string $customer_id The ID of the customer.
+		 * @return object              An object with a deleted flag set to true upon
+		 *                             success. This call returns an error otherwise,
+		 *                             such as if no discount exists on this customer.
+		 */
+		public function delete_customer_discount( $customer_id ) {
+			return $this->run( 'customers/'.$customer_id.'/discount', array(), 'DELETE' );
 		}
 
-		public function delete_subscription_discount() {
-
+		/**
+		 * Delete a subscription discount
+		 *
+		 * Removes the currently applied discount on a subscription.
+		 *
+		 * @param  string $subscription_id The ID of the customer.
+		 * @return object                  An object with a deleted flag set to true
+		 *                                 upon success. This call returns an error
+		 *                                 otherwise, such as if no discount exists
+		 *                                 on this subscription.
+		 */
+		public function delete_subscription_discount( $subscription_id ) {
+			return $this->run( 'subscriptions/'.$subscription_id.'/discount', array(), 'DELETE' );
 		}
 
 		/* INVOICES. */
 
-		public function create_invoice() {
+		/**
+		 * If you need to invoice your customer outside the regular billing cycle, you
+		 * can create an invoice that pulls in all pending invoice items, including
+		 * prorations. The customer’s billing cycle and regular subscription won’t
+		 * be affected.
+		 *
+		 * Once you create the invoice, Stripe will attempt to collect payment according
+		 * to your subscriptions settings, though you can choose to pay it right away.
+		 *
+		 * $args supports additional optional arguments:
+		 *   application_fee:
+		 *     A fee in cents that will be applied to the invoice and transferred to
+		 *     the application owner’s Stripe account. The request must be made with
+		 *     an OAuth key or the Stripe-Account header in order to take an application
+		 *     fee. For more information, see the application fees documentation.
+		 *   billing:
+		 *     Either charge_automatically, or send_invoice. When charging automatically,
+		 *     Stripe will attempt to pay this invoice using the default source attached
+		 *     to the customer. When sending an invoice, Stripe will email this invoice
+		 *     to the customer with payment instructions. Defaults to charge_automatically.
+		 *   days_until_due:
+		 *     The number of days from which the invoice is created until it is due.
+		 *     Only valid for invoices where billing=send_invoice.
+		 *   description:
+		 *     A description for the invoice.
+		 *   due_date:
+		 *     The date on which payment for this invoice is due. Only valid for invoices
+		 *     where billing=send_invoice.
+		 *   metadata:
+		 *     Metadata to attach to the invoice.
+		 *   statement_descriptor:
+		 *     Extra information about a charge for the customer’s credit card statement.
+		 *   subscription:
+		 *     The ID of the subscription to invoice. If not set, the created invoice will
+		 *     include all pending invoice items for the customer. If set, the created
+		 *     invoice will exclude pending invoice items that pertain to other subscriptions.
+		 *   tax_percent:
+		 *     The percent tax rate applied to the invoice, represented as a decimal number.
+		 *
+		 * @param  string $customer_id The ID of the customer to create the invoice to.
+		 * @param  array  $args        (Default: array()) Additional properties to pass.
+		 * @return object              Returns the invoice object if there are pending
+		 *                             invoice items to invoice.
+		 *
+		 *                             Returns an error if there are no pending invoice
+		 *                             items or if the customer ID provided is invalid.
+		 */
+		public function create_invoice( $customer_id, $args = array() ) {
+			$args['customer'] = $customer_id;
 
+			return $this->run( 'invoices', $args, 'POST' );
 		}
 
-		public function retrieve_invoice() {
-
+		/**
+		 * Retrieve an invoice
+		 *
+		 * Retrieves the invoice with the given ID.
+		 *
+		 * @param  string $id The identifier of the desired invoice.
+		 * @return object     An invoice object if a valid invoice ID was provided.
+		 *                    Returns an error otherwise.
+		 *
+		 *                    The invoice object contains a lines hash that contains
+		 *                    information about the subscriptions and invoice items that
+		 *                    have been applied to the invoice, as well as any prorations
+		 *                    that Stripe has automatically calculated. Each line on the
+		 *                    invoice has an amount attribute that represents the amount
+		 *                    actually contributed to the invoice’s total. For invoice items
+		 *                    and prorations, the amount attribute is the same as for the
+		 *                    invoice item or proration respectively. For subscriptions, the
+		 *                    amount may be different from the plan’s regular price depending
+		 *                    on whether the invoice covers a trial period or the invoice
+		 *                    period differs from the plan’s usual interval.
+		 *
+		 *                    The invoice object has both a subtotal and a total. The
+		 *                    subtotal represents the total before any discounts, while the
+		 *                    total is the final amount to be charged to the customer after
+		 *                    all coupons have been applied.
+		 *
+		 *                    The invoice also has a next_payment_attempt attribute that
+		 *                    tells you the next time (as a Unix timestamp) payment for
+		 *                    the invoice will be automatically attempted. For invoices with
+		 *                    manual payment collection, that have been closed, or that have
+		 *                    reached the maximum number of retries (specified in your
+		 *                    subscriptions settings), the next_payment_attempt will be null.
+		 */
+		public function retrieve_invoice( $invoice_id ) {
+			return $this->run( 'invoices/'.$invoice_id );
 		}
 
 		public function retrieve_invoice_line_items() {

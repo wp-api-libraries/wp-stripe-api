@@ -26,7 +26,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 	/**
 	 * StripeAPI Class.
 	 */
-	class StripeAPI extends WpStripeBase {
+	class StripeAPI {
 
 		/* ------------------- API Methods ------------------------ */
 
@@ -36,19 +36,77 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		protected $args;
 
-		public function __construct( $api_key ){
+		protected $idempotent_key;
+
+		public function __construct( $api_key, bool $is_debug = false ){
 			$this->set_api_key( $api_key );
+			$this->is_debug = $is_debug;
 		}
 
 		public function set_api_key( $api_key ){
 			$this->api_key = $api_key;
 		}
 
+		/**
+		 * Build request function: prepares the class for a fetch request.
+		 *
+		 * @param  string $route    URL to be accessed.
+		 * @param  array  $args     Arguments to pass in. If the method is GET, will be passed as query arguments attached to the route. If the method is not get, but the content type as defined in headers is 'application/json', then the body of the request will be set to a json_encode of $args. Otherwise, they will be passed as the body.
+		 * @param  string $method (Default: 'GET') The method.
+		 * @return [type]           The return of the function.
+		 */
+		protected function build_request( $route, $body = array(), $method = 'GET' ) {
+			$this->method = $method;
+
+			// Sets headers.
+			$this->set_headers();
+
+			// Sets route.
+			$this->route = $route;
+			// If method is get, then there is no body.
+			if ( 'GET' === $method ) {
+				$this->route = add_query_arg( array_filter( $body ), $route );
+			} // Otherwise, if the content type is application/json, then the body needs to be json_encoded
+			elseif ( 'application/json' === $this->args['headers']['Content-Type'] ) {
+				$this->args['body'] = wp_json_encode( $body );
+			} // Anything else, let the user take care of it.
+			else {
+				$this->args['body'] = $body;
+			}
+			return $this;
+		}
+
+		protected function fetch() {
+			$response = wp_remote_request( $this->base_uri . $this->route, $this->args );
+			// Retrieve status code and body.
+			$code = wp_remote_retrieve_response_code( $response );
+			$body = json_decode( wp_remote_retrieve_body( $response ) );
+			// Clear last request.
+			$this->clear();
+			if ( ! $this->is_status_ok( $code ) && ! $this->is_debug ) {
+				return new WP_Error( 'response-error', sprintf( __( 'Status: %d', 'wp-postmark-api' ), $code ), $body );
+			}
+			return $body;
+		}
+
+		/**
+		 * Returns whether status is in [ 200, 300 ).
+		 */
+		protected function is_status_ok( $code ) {
+			return ( 200 <= $code && 300 > $code );
+		}
+
 		protected function set_headers(){
 			$this->args['headers'] = array(
 				'Authorization' => ' Bearer ' . $this->api_key,
-				'Content-Type' => 'application/x-www-form-urlencoded'
+				'Content-Type' => 'application/x-www-form-urlencoded',
+				'method' => $this->method,
 			);
+
+		  if( 'GET' !== $this->method && 'DELETE' !== $this->method ){
+				$this->args['headers']['Idempotency-Key'] = $this->new_uuid();
+			}
+
 		}
 
 		protected function clear(){
@@ -57,6 +115,24 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		protected function run( $route, $body = array(), $method = 'GET' ){
 			return $this->build_request( $route, $body, $method )->fetch();
+		}
+
+		protected function new_uuid(){
+			return sprintf( '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+				// 32 bits for "time_low"
+				mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
+				// 16 bits for "time_mid"
+				mt_rand( 0, 0xffff ),
+				// 16 bits for "time_hi_and_version",
+				// four most significant bits holds version number 4
+				mt_rand( 0, 0x0fff ) | 0x4000,
+				// 16 bits, 8 bits for "clk_seq_hi_res",
+				// 8 bits for "clk_seq_low",
+				// two most significant bits holds zero and one for variant DCE1.1
+				mt_rand( 0, 0x3fff ) | 0x8000,
+				// 48 bits for "node"
+				mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff )
+			);
 		}
 
 		/* ------------------- CORE RESOURCES --------------------- */

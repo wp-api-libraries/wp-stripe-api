@@ -1013,7 +1013,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array  $args       Args to send into request. See documentation.
 		 * @return array              Product Object
 		 */
-		public function update_product( $product_id, $args ) {
+		public function update_product( $product_id, $args = array() ) {
 			return $this->run( "products/$product_id", $args, 'POST' );
 		}
 
@@ -1026,7 +1026,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array $args Args to send into request. See documentation.
 		 * @return array       List of product objects.
 		 */
-		public function list_products( $args ) {
+		public function list_products( $args = array() ) {
 			return $this->run( 'products', $args );
 		}
 
@@ -2050,46 +2050,153 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array $args       Additional args to send to request.
 		 * @return array             List of invoice line items.
 		 */
-		public function retrieve_invoice_line_items( $invoice_id, $args ) {
+		public function retrieve_invoice_line_items( $invoice_id, $args = array() ) {
 			return $this->run( "invoices/$invoice_id/lines", $args );
 		}
 
-		public function retrieve_upcoming_invoice() {
+		/**
+		 * At any time, you can preview the upcoming invoice for a customer. This will show you all the charges that are
+		 * pending, including subscription renewal charges, invoice item charges, etc. It will also show you any discount
+		 * that is applicable to the customer.
+		 *
+		 * Note that when you are viewing an upcoming invoice, you are simply viewing a preview – the invoice has not yet
+		 * been created. As such, the upcoming invoice will not show up in invoice listing calls, and you cannot use the
+		 * API to pay or edit the invoice. If you want to change the amount that your customer will be billed, you can add,
+		 * remove, or update pending invoice items, or update the customer’s discount.
+		 *
+		 * You can preview the effects of updating a subscription, including a preview of what proration will take place.
+		 * To ensure that the actual proration is calculated exactly the same as the previewed proration, you should pass a
+		 * proration_date parameter when doing the actual subscription update. The value passed in should be the same as the
+		 * subscription_proration_date returned on the upcoming invoice resource. The recommended way to get only the
+		 * prorations being previewed is to consider only proration line items where period[start] is equal to the
+		 * subscription_proration_date on the upcoming invoice resource.
+		 *
+		 * @see https://stripe.com/docs/api/curl#upcoming_invoice Documentation
+		 *
+		 * @param  string $customer_id The identifier of the customer whose upcoming invoice you’d like to retrieve.
+		 * @param  array  $args        Additional args.
+		 * @return array               An Invoice object.
+		 */
+		public function retrieve_upcoming_invoice( $customer_id, $args = array() ) {
+			$args['customer'] = $customer_id;
+			return $this->run( "invoices/upcoming", $args );
+		}
+
+		/**
+		 * Until an invoice is paid, it is marked as open (closed=false). If you’d like to stop Stripe from attempting to
+		 * collect payment on an invoice or would simply like to close the invoice out as no longer owed by the customer,
+		 * you can update the closed parameter.
+		 *
+		 * @see https://stripe.com/docs/api/curl#update_invoice Documentation
+		 *
+		 * @param  string $invoice_id ID of the invoice.
+		 * @param  array  $args       Args to add to query.
+		 * @return array              An invoice object
+		 */
+		public function update_invoice( $invoice_id, $args = array() ) {
+			return $this->run( "invoices/$invoice_id", $args, 'POST' );
+		}
+		/**
+		 * Stripe automatically creates and then attempts to collect payment on invoices for customers on subscriptions
+		 * according to your subscriptions settings. However, if you’d like to attempt payment on an invoice out of the
+		 * normal collection schedule or for some other reason, you can do so.
+		 *
+		 * @see https://stripe.com/docs/api/curl#pay_invoice Documentation
+		 *
+		 * @param  string $invoice_id ID of invoice to pay.
+		 * @param  array  $args       Array of additional args for the request.
+		 * @return array              Invoice object.
+		 */
+		public function pay_invoice( $invoice_id, $args = array() ) {
+			return $this->run( "invoices/$invoice_id/pay", $args, 'POST' );
 
 		}
 
-		public function update_invoice() {
-
-		}
-
-		public function pay_invoice() {
-
-		}
-
-		public function list_invoices() {
-
+		/**
+		 * You can list all invoices, or list the invoices for a specific customer. The invoices are returned sorted by
+		 * creation date, with the most recently created invoices appearing first.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_invoices Documentation
+		 *
+		 * @param  array $args Additional args to send to request.
+		 * @return array       List of invoices.
+		 */
+		public function list_invoices( $args = array() ) {
+			return $this->run( "invoices", $args );
 		}
 
 		/* INVOICE ITEMS. */
 
-		public function create_invoice_item() {
+		/**
+		 * Adds an arbitrary charge or credit to the customer’s upcoming invoice.
+		 *
+		 * @see https://stripe.com/docs/api/curl#create_invoiceitem Documentation
+		 *
+		 * @param  string $currency    Three-letter ISO currency code, in lowercase. Must be a supported currency.
+		 * @param  string $customer_id The ID of the customer who will be billed when this invoice item is billed.
+		 * @param  array  $args        Additional args to send to request.
+		 * @return array               The created invoice item object is returned if successful. Otherwise, this call
+		 *                             returns an error.
+		 */
+		public function create_invoice_item( $currency, $customer_id, $args = array() ) {
+			$args['customer'] = $customer_id;
+			$args['currency'] = $currency;
 
+			return $this->run( 'invoiceitems', $args, 'POST' );
 		}
 
+		/**
+		 * Retrieves the invoice item with the given ID.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_invoiceitem Documentation
+		 *
+		 * @return array Returns an invoice item if a valid invoice item ID was provided. Returns an error otherwise.
+		 */
 		public function retrieve_invoice_item() {
-
+			return $this->run( "invoiceitems/$invoice_item_id" );
 		}
 
-		public function update_invoice_item() {
-
+		/**
+		 * Updates the amount or description of an invoice item on an upcoming invoice. Updating an invoice item is only
+		 * possible before the invoice it’s attached to is closed
+		 *
+		 * @see https://stripe.com/docs/api/curl#update_invoiceitem Documentation
+		 *
+		 * @param  string $invoice_item_id ID of invoice item to update.
+		 * @param  array  $args            Additional args to reqeust.
+		 * @return array                   The updated invoice item object is returned upon success. Otherwise, this call returns an error.
+		 */
+		public function update_invoice_item( $invoice_item_id, $args = array() ) {
+			return $this->run( "invoiceitems/$invoice_item_id", $args, 'POST' );
 		}
 
+		/**
+		 * Removes an invoice item from the upcoming invoice. Removing an invoice item is only possible before the invoice
+		 * it’s attached to is closed.
+		 *
+		 * @see https://stripe.com/docs/api/curl#delete_invoiceitem Documentation
+		 *
+		 * @return array An object with the deleted invoice item’s ID and a deleted flag upon success. Otherwise, this call
+		 *               returns an error, such as if the invoice item has already been deleted.
+		 */
 		public function delete_invoice_item() {
-
+			return $this->run( "invoiceitems/$invoice_item_id", array(), 'DELETE' );
 		}
 
-		public function list_invoice_items() {
-
+		/**
+		 * Returns a list of your invoice items. Invoice items are returned sorted by creation date, with the most recently
+		 * created invoice items appearing first.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_invoiceitems Documentation
+		 *
+		 * @param  array  $args Additional args to send to request.
+		 * @return array        A dictionary with a data property that contains an array of up to limit invoice items,
+		 *                      starting after invoice item starting_after. Each entry in the array is a separate invoice
+		 *                      item object. If no more invoice items are available, the resulting array will be empty.
+		 *                      This request should never return an error.
+		 */
+		public function list_invoice_items( $args = array() ) {
+			return $this->run( "invoiceitems", $args );
 		}
 
 		/* PLANS. */

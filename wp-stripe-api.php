@@ -967,6 +967,83 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 			return $this->run( 'payouts/'.$payout_id.'/cancel', array(), 'POST' );
 		}
 
+		/* TODO: PRODUCTS. */
+
+		/**
+		 * Creates a new product object. To create a product for use with subscriptions, see Subscriptions Products.
+		 *
+		 * @see https://stripe.com/docs/api/curl#create_product Documentation
+		 *
+		 * @param  string $name     The product’s name, meant to be displayable to the customer. Applicable to both service
+		 *                          and good types.
+		 * @param  string $type     The type of the product. The product is either of type service, which is eligible for
+		 *                          use with Subscriptions and Plans or good, which is eligible for use with Orders and SKUs.
+		 * @param  array  $optional Optional args to send into the request. See documentation.
+		 * @return array            Product Object
+		 */
+		public function create_product( $name, $type, $optional = array() ) {
+			$args = array_merge( compact ( 'name', 'type' ), $optional );
+
+			return $this->run( 'products', $args, 'POST' );
+		}
+
+		/**
+		 * Retrieves the details of an existing product. Supply the unique product ID from either a product creation request
+		 * or the product list, and Stripe will return the corresponding product information.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_product Documentation
+		 *
+		 * @param  string $product_id ID of product to retrieve.
+		 * @return array              Product Object
+		 */
+		public function retrieve_product( $product_id ) {
+			return $this->run( "products/$product_id" );
+		}
+
+		/**
+		 * Updates the specific product by setting the values of the parameters passed. Any parameters not provided will be
+		 * left unchanged.
+		 *
+		 * Note that a product’s attributes are not editable. Instead, you would need to deactivate the existing product and
+		 * create a new one with the new attribute values.
+		 *
+		 * @see https://stripe.com/docs/api/curl#update_product Documentation
+		 *
+		 * @param  string $product_id ID of product to update.
+		 * @param  array  $args       Args to send into request. See documentation.
+		 * @return array              Product Object
+		 */
+		public function update_product( $product_id, $args ) {
+			return $this->run( "products/$product_id", $args, 'POST' );
+		}
+
+		/**
+		 * Returns a list of your products. The products are returned sorted by creation date, with the most recently
+		 * created products appearing first.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_products Documentation
+		 *
+		 * @param  array $args Args to send into request. See documentation.
+		 * @return array       List of product objects.
+		 */
+		public function list_products( $args ) {
+			return $this->run( 'products', $args );
+		}
+
+		/**
+		 * Delete a product. Deleting a product with type=good is only possible if it has no SKUs associated with it.
+		 * Deleting a product with type=service is only possible if it has no plans associated with it.
+		 *
+		 * @see https://stripe.com/docs/api/curl#delete_product Documentation
+		 *
+		 * @param  string $product_id ID of product to delete.
+		 * @return array              Deleted status.
+		 */
+		public function delete_product( $product_id ) {
+			return $this->run( "products/$product_id", array(), 'DELETE' );
+
+		}
+
 		/* REFUNDS. */
 
 		/**
@@ -1959,11 +2036,22 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                    subscriptions settings), the next_payment_attempt will be null.
 		 */
 		public function retrieve_invoice( $invoice_id ) {
-			return $this->run( 'invoices/'.$invoice_id );
+			return $this->run( "invoices/$invoice_id" );
 		}
 
-		public function retrieve_invoice_line_items() {
-
+		/**
+		 * When retrieving an invoice, you’ll get a lines property containing the total count of line items and the first
+		 * handful of those items. There is also a URL where you can retrieve the full (paginated) list of line items.
+		 *
+		 * @see https://stripe.com/docs/api/curl#invoice_lines Documentation
+		 *
+		 * @param  string $invoice_id The ID of the invoice containing the lines to be retrieved. Use a value of upcoming
+		 *                            to retrieve the upcoming invoice.
+		 * @param  array $args       Additional args to send to request.
+		 * @return array             List of invoice line items.
+		 */
+		public function retrieve_invoice_line_items( $invoice_id, $args ) {
+			return $this->run( "invoices/$invoice_id/lines", $args );
 		}
 
 		public function retrieve_upcoming_invoice() {
@@ -2182,27 +2270,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		/* ORDER ITEMS. */
 
-		/* PRODUCTS. */
 
-		public function create_product() {
-
-		}
-
-		public function retrieve_product() {
-
-		}
-
-		public function update_product() {
-
-		}
-
-		public function list_products() {
-
-		}
-
-		public function delete_product() {
-
-		}
 
 		/* RETURNS. */
 

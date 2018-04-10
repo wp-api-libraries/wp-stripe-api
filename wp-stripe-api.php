@@ -18,8 +18,6 @@
 /* Exit if accessed directly. */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-include_once( 'wp-stripe-base.php' );
-
 /* Check if class exists. */
 if ( ! class_exists( 'StripeAPI' ) ) {
 
@@ -56,9 +54,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return [type]           The return of the function.
 		 */
 		protected function build_request( $route, $body = array(), $method = 'GET' ) {
-			$this->method = $method;
-
-			// Sets headers.
+			// Sets request args and headers.
+			$this->args['method'] = $method;
 			$this->set_headers();
 
 			// Sets route.
@@ -100,10 +97,9 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 			$this->args['headers'] = array(
 				'Authorization' => ' Bearer ' . $this->api_key,
 				'Content-Type' => 'application/x-www-form-urlencoded',
-				'method' => $this->method,
 			);
 
-		  if( 'GET' !== $this->method && 'DELETE' !== $this->method ){
+		  if( 'GET' !== $this->args['method'] && 'DELETE' !== $this->args['method'] ){
 				$this->args['headers']['Idempotency-Key'] = $this->new_uuid();
 			}
 
@@ -907,8 +903,10 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object             Returns the payout object if the update succeeded. This
 		 *                            call returns an error if update parameters are invalid.
 		 */
-		public function update_payout( $payment_id, $metadata = array() ) {
-			return $this->run( 'payouts/'.$payment_id, array( 'metadata' => $metadata ), 'POST' );
+		public function update_payout( $payment_id, $metadata = null ) {
+			$args = ( null !== $metadata ) ? array( 'metadata' => $metadata ) : array();
+
+			return $this->run( 'payouts/'.$payment_id, $args, 'POST' );
 		}
 
 		/**
@@ -967,7 +965,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 			return $this->run( 'payouts/'.$payout_id.'/cancel', array(), 'POST' );
 		}
 
-		/* TODO: PRODUCTS. */
+		/* PRODUCTS. */
 
 		/**
 		 * Creates a new product object. To create a product for use with subscriptions, see Subscriptions Products.
@@ -1862,8 +1860,10 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                           Otherwise, this call returns an error, such as if the
 		 *                           coupon has been deleted.
 		 */
-		public function update_coupon( $coupon_id, $metadata = array() ) {
-			return $this->run( 'coupons/'.$coupon_id, array( 'metadata' => $metadata ), 'POST' );
+		public function update_coupon( $coupon_id, $metadata = null ) {
+			$args = ( null !== $metadata ) ? array( 'metadata' => $metadata ) : array();
+
+			return $this->run( 'coupons/'.$coupon_id, $args, 'POST' );
 		}
 
 		/**
@@ -2453,89 +2453,628 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 			return $this->run( "subscription_items", $args );
 		}
 
+		/* Usage Records */
+
+		/**
+		 * Creates a usage record for a specified subscription item and date, and fills it with a quantity.
+		 *
+		 * @see https://stripe.com/docs/api/curl#usage_records Documentation
+		 *
+		 * @param  string $subscription_id The ID of the subscription item for this usage record.
+		 * @param  int    $quantity        The usage quantity for the specified timestamp.
+		 * @param  int    $timestamp       The timestamp for the usage event. This timestamp must be within the current
+		 *                                 billing period of the subscription of the provided subscription_item.
+		 * @param  string $action          Valid values are increment (default) or set. When using increment the specified
+		 *                                 quantity will be added to the usage at the specified timestamp. The set action
+		 *                                 will overwrite the usage quantity at that timestamp.
+		 * @return array                   Returns the usage record object.
+		 */
+		public function create_usage_record( string $subscription_item_id, int $quantity, int $timestamp, string $action = 'increment' ) {
+			$args = compact ( 'quantity', 'timestamp', 'action' );
+
+			return $this->run( "subscription_items/$subscription_item_id/usage_records", $args, 'POST' );
+		}
 		/* ------------------- CONNECT --------------------- */
 
 		/* ACCOUNT. */
 
-		public function create_account() {
+		/**
+		 * With Connect, you can create Stripe accounts for your users. To do this, you'll first need to register your platform.
+		 *
+		 * @see https://stripe.com/docs/api/curl#create_account Documentation
+		 *
+		 * @param  string $type    Whether you'd like to create a Standard or Custom account. Standard accounts are normal
+		 *                         Stripe accounts: Stripe will email the account holder to set up a username and password,
+		 *                         and will handle all account management directly with them. Custom accounts have extra
+		 *                         parameters available to them, and require that you, the platform, handle all communication
+		 *                         with the account holder. Possible values are standard and custom.
+		 * @param  string $email   The email address of the account holder. For Standard accounts, Stripe will email your
+		 *                         user with instructions on how to set up their account. For Custom accounts, this is only
+		 *                         to make the account easier to identify to you: Stripe will never directly email your users.
+		 * @param  string $country The country in which the account holder resides, or in which the business is legally
+		 *                         established. This should be an ISO 3166-1 alpha-2 country code. For example, if you are
+		 *                         in the United States and the business for which you're creating an account is legally
+		 *                         represented in Canada, you would use CA as the country for the account being created.
+		 * @param  array  $args    Additional args to send request.
+		 * @return array           Returns the Account object, with an additional keys dictionary containing secret and
+		 *                         publishable keys for that account.
+		 */
+		public function create_account( string $type, string $email, string $country = '', $args = array() ) {
+			$args = array_merge( compact ( 'type', 'email', 'country' ), $args);
+			return $this->run( "accounts", $args, 'POST' );
+		}
+
+		/**
+		 * Retrieves the details of the account.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_account Documentation
+		 *
+		 * @param  string $account_id The identifier of the account to retrieve. If none is provided, the account associated
+		 *                            with the API key is returned.
+		 * @return array              Returns an account object.
+		 */
+		public function retrieve_account_details( string $account_id ) {
+			return $this->run( "accounts/$account_id" );
+		}
+
+		/**
+		 * Updates a connected Express or Custom account by setting the values of the parameters passed. Any parameters not
+		 * provided are left unchanged. Most parameters can be changed only for Custom accounts. (These are marked Custom
+		 * Only below.) Parameters marked Custom and Express are supported by both account types.
+		 *
+		 * To update your own account, use the Dashboard. Refer to our Connect documentation to learn more about updating
+		 * accounts.
+		 *
+		 * @see https://stripe.com/docs/api/curl#update_account Documentation
+		 *
+		 * @param  string $account_id The ID of the account to update.
+		 * @param  array  $args       Fields to update.
+		 * @return array              Returns an account object.
+		 */
+		public function update_account( string $account_id, $args ) {
+			return $this->run( "accounts/$account_id", $args, 'POST' );
 
 		}
 
-		public function retrieve_account_details() {
+		/**
+		 * With Connect, you may delete Custom accounts you manage.
+		 *
+		 * Custom accounts created using test-mode keys can be deleted at any time. Custom accounts created using live-mode
+		 * keys may only be deleted once all balances are zero.
+		 *
+		 * If you are looking to close your own account, use the data tab in your account settings instead.
+		 *
+		 * @see https://stripe.com/docs/api/curl#delete_account Documentation
+		 *
+		 * @param  string $account_id The identifier of the account to be deleted. If none is provided, will default to the
+		 *                            account of the API key.
+		 * @return array              Returns an object with a deleted parameter on success. If the account ID does not
+		 *                            exist, this call returns an error.
+		 */
+		public function delete_account( string $account_id = '' ) {
+			return $this->run( trim( "accounts/$account_id" ), 'DELETE' );
+		}
+
+		/**
+		 * With Connect, you may flag accounts as suspicious.
+		 *
+		 * Test-mode Custom and Express accounts can be rejected at any time. Accounts created using live-mode keys may only
+		 * be rejected once all balances are zero.
+		 *
+		 * @see https://stripe.com/docs/api/curl#reject_account Documentation
+		 *
+		 * @param  string $account_id The identifier of the account to reject
+		 * @param  string $reason     The reason for rejecting the account. Can be fraud, terms_of_service, or other.
+		 * @return array              Returns an account with payouts_enabled and charges_enabled set to false on success.
+		 *                            If the account ID does not exist, this call returns an error.
+		 */
+		public function reject_account( string $account_id, string $reason ) {
+			$args = array( 'reason' => $reason );
+			return $this->run( "accounts/$account_id/reject", $args, 'POST' );
 
 		}
 
-		public function update_account() {
-
+		/**
+		 * Returns a list of accounts connected to your platform via Connect. If you’re not a platform, the list is empty.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_accounts Documentation
+		 *
+		 * @param  array  $args Optional request args.
+		 * @return array        A dictionary with a data property that contains an array of up to limit accounts, starting
+		 *                      after account starting_after. Each entry in the array is a separate Account object. If no
+		 *                      more accounts are available, the resulting array is empty.
+		 */
+		public function list_connected_accounts( $args = array() ) {
+			return $this->run( "accounts", $args );
 		}
 
-		public function delete_account() {
-
-		}
-
-		public function reject_account() {
-
-		}
-
-		public function list_connected_accounts() {
-
-		}
-
-		public function create_login_link() {
-
+		/**
+		 * Creates a single-use login link for an Express account to access their Stripe dashboard.
+		 *
+		 * You may only create login links for Express accounts connected to your platform.
+		 *
+		 * @see https://stripe.com/docs/api/curl#login_link_object Documentation
+		 *
+		 * @param  string $account_id   The identifier of the account to create a login link for.
+		 * @param  string $redirect_url Where to redirect the user after they log out of their dashboard.
+		 * @return array                Returns a login link object if the call succeeded.
+		 */
+		public function create_login_link( string $account_id, string $redirect_url = '' ) {
+			$args = ( ! empty( $redirect_url ) ) ? array( 'redirect_url' => $redirect_url ) : array();
+			return $this->run( "accounts/$account_id/login_links", $args, 'POST' );
 		}
 
 		/* APPLICATION FEE REFUNDS. */
 
-		public function create_application_fee_refund() {
+		/**
+		 * Refunds an application fee that has previously been collected but not yet refunded. Funds will be refunded to the
+		 * Stripe account from which the fee was originally collected.
+		 *
+		 * You can optionally refund only part of an application fee. You can do so multiple times, until the entire fee has
+		 * been refunded.
+		 *
+		 * Once entirely refunded, an application fee can't be refunded again. This method will return an error when called
+		 * on an already-refunded application fee, or when trying to refund more money than is left on an application fee.
+		 *
+		 * @see https://stripe.com/docs/api/curl#create_fee_refund Documentation
+		 *
+		 * @param  string $fee_id   The identifier of the application fee to be refunded.
+		 * @param  int    $amount   A positive integer, in cents, representing how much of this fee to refund. Can refund
+		 *                          only up to the remaining unrefunded amount of the fee.
+		 * @param  array  $metadata A set of key-value pairs that you can attach to a Refund object. This can be useful for
+		 *                          storing additional information about the refund in a structured format. You can unset
+		 *                          individual keys if you POST an empty value for that key. You can clear all keys if you
+		 *                          POST an empty value for metadata.
+		 * @return array            Returns the Application Fee Refund object if the refund succeeded. Returns an error if
+		 *                          the fee has already been refunded, or if an invalid fee identifier was provided.
+		 */
+		public function create_application_fee_refund( string $fee_id, int $amount = null, array $metadata = null ) {
+			$args =  array();
 
+			if( null !== $amount ){
+				$args['amount'] = $amount;
+			}
+			if( null !== $metadata ){
+				$args['metadata'] = $metadata;
+			}
+
+			return $this->run( "application_fees/$fee_id/refunds", $args, 'POST' );
 		}
 
-		public function retrieve_application_fee_refund() {
-
+		/**
+		 * By default, you can see the 10 most recent refunds stored directly on the application fee object, but you can
+		 * also retrieve details about a specific refund stored on the application fee.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_fee_refund Documentation
+		 *
+		 * @param  string $fee_id    ID of the application fee refunded.
+		 * @param  string $refund_id ID of refund to retrieve.
+		 * @return array             Returns the application fee refund object.
+		 */
+		public function retrieve_application_fee_refund( string $fee_id, string $refund_id ) {
+			return $this->run( "application_fees/$fee_id/refunds/$refund_id" );
 		}
 
-		public function update_application_fee_refund() {
+		/**
+		 * Updates the specified application fee refund by setting the values of the parameters passed. Any parameters not
+		 * provided will be left unchanged.
+		 *
+		 * This request only accepts metadata as an argument.
+		 *
+		 * @see https://stripe.com/docs/api/curl#update_fee_refund Documentation
+		 *
+		 * @param  string $fee_id    ID of the application fee refunded.
+		 * @param  string $refund_id ID of refund to retrieve.
+		 * @param  array $metadata   Set of key-value pairs that you can attach to an object. This can be useful for storing
+		 *                           additional information about the object in a structured format. Individual keys can be
+		 *                           unset by posting an empty value to them. All keys can be unset by posting an empty
+		 *                           value to metadata.
+		 * @return array             Returns the application fee refund object if the update succeeded. This call will
+		 *                           return an error if update parameters are invalid.
+		 */
+		public function update_application_fee_refund( string $fee_id, string $refund_id, array $metadata = null ) {
+			if( null !== $metadata ){
+				$args = array( 'metadata' => $metadata );
+			}
 
+			return $this->run( "application_fees/$fee_id/refunds/$refund_id", $args, 'POST' );
 		}
 
-		public function list_application_fee_refund() {
-
+		/**
+		 * You can see a list of the refunds belonging to a specific application fee. Note that the 10 most recent refunds
+		 * are always available by default on the application fee object. If you need more than those 10, you can use this
+		 * API method and the limit and starting_after parameters to page through additional refunds.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_fee_refunds Documentation
+		 *
+		 * @param  string $fee_id The ID of the application fee whose refunds will be retrieved.
+		 * @param  array  $args   Additional args to send to request.
+		 * @return array          A dictionary with a data property that contains an array of up to limit refunds, starting
+		 *                        after starting_after. Each entry in the array is a separate application fee refund object.
+		 *                        If no more refunds are available, the resulting array will be empty. If you provide a
+		 *                        non-existent application fee ID, this call returns an error.
+		 */
+		public function list_application_fee_refund( string $fee_id, $args = array() ) {
+			return $this->run( "application_fees/$fee_id/refunds", $args );
 		}
 
 		/* APPLICATION FEES. */
 
-		public function retrieve_application_fee() {
+		/**
+		 * Retrieves the details of an application fee that your account has collected. The same information is returned
+		 * when refunding the application fee.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_application_fee Documentation
+		 *
+		 * @param  string $fee_id The identifier of the fee to be retrieved.
+		 * @return array          Returns an application fee object if a valid identifier was provided, and returns an
+		 *                        error otherwise.
+		 */
+		public function retrieve_application_fee( string $fee_id ) {
+			return $this->run( "application_fees/$fee_id" );
 
 		}
 
-		public function list_application_fee() {
-
+		/**
+		 * Returns a list of application fees you’ve previously collected. The application fees are returned in sorted
+		 * order, with the most recent fees appearing first.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_country_specs Documentation
+		 *
+		 * @param  array  $args Optional args to send to request.
+		 * @return array        A dictionary with a data property that contains an array of up to limit application fees,
+		 *                      starting after application fee starting_after. Each entry in the array is a separate
+		 *                      application fee object. If no more fees are available, the resulting array will be empty.
+		 */
+		public function list_application_fees( $args = array() ) {
+			return $this->run( "application_fees", $args );
 		}
 
 		/* COUNTRY SPECS. */
 
-		public function list_country_specs() {
-
+		/**
+		 * Lists all Country Spec objects available in the API.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_application_fees Documentation
+		 *
+		 * @param  array  $args Optional args to send to request.
+		 * @return array        Returns a list of country_spec objects.
+		 */
+		public function list_country_specs( $args = array() ) {
+			return $this->run( "country_specs", $args );
 		}
 
-		public function retrieve_country_sepc() {
-
+		/**
+		 * Returns a Country Spec for a given Country code.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_country_spec Documentation
+		 *
+		 * @param  string $country_code An ISO 3166-1 alpha-2 country code. Available country codes can be listed with the
+		 *                              List Country Specs endpoint.
+		 * @return array                Returns a country_spec object if a valid country code is provided, and returns an
+		 *                              error otherwise.
+		 */
+		public function retrieve_country_sepc( string $country_code ) {
+			return $this->run( "country_specs/$country_code", $args );
 		}
 
 		/* EXTERNAL ACCOUNTS. */
 
-		/* RECIPIENTS. */
+		/**
+		 * When you create a new bank account, you must specify a Custom account to create it on.
+		 *
+		 * If the bank account's owner has no other external account in the bank account's currency, the new bank account
+		 * will become the default for that currency. However, if the owner already has a bank account for that currency,
+		 * the new account will become the default only if the default_for_currency parameter is set to true.
+		 *
+		 * @see https://stripe.com/docs/api/curl#account_create_bank_account Documentation
+		 *
+		 * @param  string $account_id     Custom Account ID.
+		 * @param  string $ext_account_id Either a token, like the ones returned by Stripe.js, or a dictionary containing a
+		 *                                user’s bank account details (with the options shown below).
+		 * @param  array  $args           Optional args to send to request.
+		 * @return array                  Returns the bank account object.
+		 */
+		public function create_external_bank_account( $account_id, $ext_account_id, $args = array() ){
+			$args['external_account'] = $ext_account_id;
+			return $this->run( "accounts/$account_id/external_accounts", $args, 'POST' );
+		}
+
+
+		/**
+		 * By default, you can see the 10 most recent external accounts stored on a Custom account directly on the object,
+		 * but you can also retrieve details about a specific bank account stored on the Custom account.
+		 *
+		 * @see https://stripe.com/docs/api/curl#account_retrieve_bank_account Documentation
+		 *
+		 * @param  string $account_id     Custom Account ID.
+		 * @param  string $ext_account_id Bank account ID.
+		 * @return array                  Returns the bank account object.
+		 */
+		public function retrieve_external_bank_account( string $account_id, string $bank_account_id ){
+			return $this->run( "accounts/$account_id/external_accounts/$bank_account_id" );
+		}
+
+		/**
+		 * Updates the metadata of a bank account belonging to a Custom account, and optionally sets it as the default for
+		 * its currency. Other bank account details are not editable by design.
+		 *
+		 * You can re-enable a disabled bank account by performing an update call without providing any arguments or changes.
+		 *
+		 * @see https://stripe.com/docs/api/curl#account_update_bank_account Documentation
+		 *
+		 * @param  string $account_id      Custom Account ID.
+		 * @param  string $bank_account_id Bank account ID.
+		 * @param  array  $args            Additional args.
+		 * @return array                   Returns the bank account object.
+		 */
+		public function update_external_bank_account( string $account_id, string $bank_account_id, $args = array() ){
+			return $this->run( "accounts/$account_id/external_accounts/$bank_account_id", $args, 'POST' );
+		}
+
+		/**
+		 * You can delete destination bank accounts from a Custom account.
+		 *
+		 * If a bank account's default_for_currency property is true, it can only be deleted if it is the only external
+		 * account for that currency, and the currency is not the Stripe account's default currency. Otherwise, before
+		 * deleting the account, you must set another external account to be the default for the currency.
+		 *
+		 * @see https://stripe.com/docs/api/curl#account_delete_bank_account Documentation
+		 *
+		 * @param  string $account_id      Custom Account ID.
+		 * @param  string $bank_account_id The ID of the external account to be deleted.
+		 * @return string                  Returns the deleted bank account object.
+		 */
+		public function delete_external_bank_account( string $account_id, string $bank_account_id ){
+			return $this->run( "accounts/$account_id/external_accounts/$bank_account_id", array(), 'DELETE' );
+		}
+
+		/**
+		 * You can see a list of the bank accounts belonging to a Custom account. Note that the 10 most recent external
+		 * accounts are always available by default on the corresponding Stripe object. If you need more than those 10, you
+		 * can use this API method and the limit and starting_after parameters to page through additional bank accounts.
+		 *
+		 * @see https://stripe.com/docs/api/curl#account_list_bank_accounts Documentation
+		 *
+		 * @param  string $account_id Custom Account ID.
+		 * @param  array  $args       Additional args to send to request.
+		 * @return array              Returns a list of the bank accounts stored on the Custom account.
+		 */
+		public function list_external_bank_accounts( string $account_id, array $args = array() ){
+			$args['object'] = 'bank_account';
+			return $this->run( "accounts/$account_id/external_accounts", $args );
+		}
+
+		/**
+		 * When you create a new credit card, you must specify a Custom account to create it on.
+		 *
+		 * If the account has no default destination card, then the new card will become the default. However, if the owner
+		 * already has a default then it will not change. To change the default, you should set default_for_currency to true
+		 * when creating a card for a Custom account.
+		 *
+		 * @see https://stripe.com/docs/api/curl#account_create_card Documentation
+		 *
+		 * @param  string $account_id     Custom Account ID.
+		 * @param  string $ext_account_id Either a token, like the ones returned by Stripe.js, or a dictionary containing a
+		 *                                user's credit card details (with the options shown below). Stripe will
+		 *                                automatically validate the card.
+		 * @param  array  $args           Additional args.
+		 * @return array                  Returns the card object.
+		 */
+		public function create_external_card( string $account_id, string $ext_account_id, $args = array() ){
+			$args['external_account'] = $ext_account_id;
+			return $this->run( "accounts/$account_id/external_accounts", $args, 'POST' );
+		}
+
+		/**
+		 * By default, you can see the 10 most recent external accounts stored on a Custom account directly on the object,
+		 * but you can also retrieve details about a specific card stored on the Custom account.
+		 *
+		 * @see https://stripe.com/docs/api/curl#account_retrieve_card Documentation
+		 *
+		 * @param  string $account_id Custom Account ID.
+		 * @param  string $card_id    External card ID.
+		 * @return array              Returns the card object.
+		 */
+		public function retrieve_external_card( string $account_id, string $card_id ){
+			return $this->run( "accounts/$account_id/external_accounts/$card_id" );
+		}
+
+		/**
+		 * If you need to update only some card details, like the billing address or expiration date, you can do so without
+		 * having to re-enter the full card details. Stripe also works directly with card networks so that your customers
+		 * can continue using your service without interruption.
+		 *
+		 * @see https://stripe.com/docs/api/curl#account_update_card Documentation
+		 *
+		 * @param  string $account_id Custom Account ID.
+		 * @param  string $card_id    The ID of the card to update.
+		 * @param  array  $args       Additional args.
+		 * @return array              Returns the card object.
+		 */
+		public function update_external_card( string $account_id, string $card_id, $args = array() ){
+			return $this->run( "accounts/$account_id/external_accounts/$card_id", $args, 'POST' );
+		}
+
+		/**
+		 * You can delete cards from a managed account.
+		 *
+		 * If a card's default_for_currency property is true, it can only be deleted if it is the only external account for
+		 * that currency, and the currency is not the Stripe account's default currency. Otherwise, before deleting the
+		 * card, you must set another external account to be the default for the currency.
+		 *
+		 * @see https://stripe.com/docs/api/curl#account_delete_card Documentation
+		 *
+		 * @param  string $account_id Custom Account ID.
+		 * @param  string $card_id    The ID of the external account to be deleted.
+		 * @return array              Returns the deleted card object.
+		 */
+		public function delete_external_card( string $account_id, string $card_id ){
+			return $this->run( "accounts/$account_id/external_accounts/$card_id", array(), 'DELETE' );
+		}
+
+		/**
+		 * You can see a list of the cards belonging to a Custom account. Note that the 10 most recent external accounts
+		 * are available on the account object. If you need more than those 10, you can use this API method and the limit
+		 * and starting_after parameters to page through additional cards.
+		 *
+		 * @see https://stripe.com/docs/api/curl#account_list_cards Documentation
+		 *
+		 * @param  string $account_id Custom Account ID.
+		 * @param  array  $args       Additional args.
+		 * @return array              Returns a list of the cards stored on the account.
+		 */
+		public function list_external_cards( string $account_id, array $args = array() ){
+			$args['object'] = 'card';
+			return $this->run( "accounts/$account_id/external_accounts", $args );
+		}
 
 		/* TRANSFERS. */
 
+		/**
+		 * To send funds from your Stripe account to a connected account, you create a new transfer object. Your Stripe
+		 * balance must be able to cover the transfer amount, or you’ll receive an “Insufficient Funds” error.
+		 *
+		 * @see https://stripe.com/docs/api/curl#create_transfer Documentation
+		 *
+		 * @param  int    $amount      A positive integer in cents representing how much to transfer.
+		 * @param  string $currency    3-letter ISO code for currency.
+		 * @param  string $destination The ID of a connected Stripe account. See the Connect documentation for details.
+		 * @param  array  $args        Additional args.
+		 * @return array               Returns a transfer object if there were no initial errors with the transfer creation
+		 *                             (e.g., insufficient funds).
+		 */
+		public function create_transfer( int $amount, string $currency, string $destination, $args = array() ){
+			$args = array_merge( compact ( 'amount', 'currency', 'destination' ), $args );
+
+			return $this->run( "transfers", $args, 'POST' );
+		}
+
+		/**
+		 * Retrieves the details of an existing transfer. Supply the unique transfer ID from either a transfer creation
+		 * request or the transfer list, and Stripe will return the corresponding transfer information.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_transfer Documentation
+		 *
+		 * @param  string $transfer_id The identifier of the transfer to be retrieved.
+		 * @return array               Returns a transfer object if a valid identifier was provided, and returns an error
+		 *                             otherwise.
+		 */
+		public function retrieve_transfer( string $transfer_id ) {
+			return $this->run( "transfers/$transfer_id" );
+		}
+
+		/**
+		 * Updates the specified transfer by setting the values of the parameters passed. Any parameters not provided will
+		 * be left unchanged.
+		 *
+		 * This request accepts only metadata as an argument.
+		 *
+		 * @see https://stripe.com/docs/api/curl#update_transfer Documentation
+		 *
+		 * @param  string $transfer_id The ID of the transfer to be updated.
+		 * @param  array  $metadata    Set of key-value pairs that you can attach to an object. This can be useful for
+		 *                             storing additional information about the object in a structured format. Individual
+		 *                             keys can be unset by posting an empty value to them. All keys can be unset by posting
+		 *                             an empty value to metadata.
+		 * @return array               Returns the transfer object if the update succeeded. This call will return an error
+		 *                             if update parameters are invalid.
+		 */
+		public function update_transfer( string $transfer_id, array $metadata = null) {
+			$args = ( null !== $metadata ) ? array( 'metadata' => $metadata ) : array();
+
+			return $this->run( "transfers/$transfer_id", $args, 'POST' );
+		}
+
+		/**
+		 * Returns a list of existing transfers sent to connected accounts. The transfers are returned in sorted order, with
+		 * the most recently created transfers appearing first.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_transfers Documentation
+		 *
+		 * @param  array  $args Additional args.
+		 * @return array        A dictionary with a data property that contains an array of up to limit transfers, starting
+		 *                      after transfer starting_after. Each entry in the array is a separate transfer object. If no
+		 *                      more transfers are available, the resulting array will be empty
+		 */
+		public function list_transfers( $args = array() ){
+			return $this->run( "transfers", $args );
+		}
+
 		/* TRANSFER REVERSALS. */
 
-		/* ------------------- RADAR --------------------- */
+		/**
+		 * When you create a new reversal, you must specify a transfer to create it on.
+		 *
+		 * When reversing transfers, you can optionally reverse part of the transfer. You can do so as many times as you
+		 * wish until the entire transfer has been reversed.
+		 *
+		 * Once entirely reversed, a transfer can’t be reversed again. This method will return an error when called on an
+		 * already-reversed transfer, or when trying to reverse more money than is left on a transfer.
+		 *
+		 * @see https://stripe.com/docs/api/curl#create_transfer_reversal Documentation
+		 *
+		 * @param  string $transfer_id The ID of the transfer to be reversed.
+		 * @param  array  $args        Additional args.
+		 * @return array               Returns a transfer reversal object if the reversal succeeded. Returns an error if the
+		 *                             transfer has already been reversed or an invalid transfer identifier was provided.
+		 */
+		public function create_transfer_reversal( string $transfer_id, $args = array() ){
+			return $this->run( "transfers/$transfer_id/reversals", $args, 'POST' );
+		}
 
-		/* REVIEWS. */
+		/**
+		 * By default, you can see the 10 most recent reversals stored directly on the transfer object, but you can also
+		 * retrieve details about a specific reversal stored on the transfer.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_transfer_reversal Documentation
+		 *
+		 * @param  string $transfer_id ID of the transfer reversed.
+		 * @param  string $reversal_id ID of reversal to retrieve.
+		 * @return array               Returns the reversal object.
+		 */
+		public function retrieve_transfer_reversal( string $transfer_id, string $reversal_id ){
+			return $this->run( "transfers/$transfer_id/reversals/$reversal_id" );
+		}
 
-		/* ------------------- RELAY --------------------- */
+		/**
+		 * Updates the specified reversal by setting the values of the parameters passed. Any parameters not provided will
+		 * be left unchanged.
+		 *
+		 * This request only accepts metadata and description as arguments.
+		 *
+		 * @see https://stripe.com/docs/api/curl#update_transfer_reversal Documentation
+		 *
+		 * @param  string $transfer_id ID of the transfer reversed.
+		 * @param  string $reversal_id ID of reversal to retrieve.
+		 * @return array               Returns the reversal object if the update succeeded. This call will return an error
+		 *                             if update parameters are invalid.
+		 */
+		public function update_transfer_reversal( string $transfer_id, string $reversal_id, array $metadata = null) {
+			$args = ( null !== $metadata ) ? array( 'metadata' => $metadata ) : array();
+
+			return $this->run( "transfers/$transfer_id/reversals", $args, 'POST' );
+		}
+
+		/**
+		 * You can see a list of the reversals belonging to a specific transfer. Note that the 10 most recent reversals are
+		 * always available by default on the transfer object. If you need more than those 10, you can use this API method
+		 * and the limit and starting_after parameters to page through additional reversals.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_transfer_reversals Documentation
+		 *
+		 * @param  string $transfer_id The ID of the transfer whose reversals will be retrieved.
+		 * @param  array  $args        Additional args.
+		 * @return array               A dictionary with a data property that contains an array of up to limit reversals,
+		 *                             starting after reversal starting_after. Each entry in the array is a separate
+		 *                             reversal object. If no more reversals are available, the resulting array will be
+		 *                             empty. If you provide a non-existent transfer ID, this call returns an error.
+		 */
+		public function list_transfer_reversals( string $transfer_id, array $args = array() ) {
+			return $this->run( "transfers/$transfer_id/reversals", $args );
+		}
+
+		/* ------------------- Orders --------------------- */
 
 		/* ORDERS. */
 

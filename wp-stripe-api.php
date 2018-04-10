@@ -3078,76 +3078,231 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		/* ORDERS. */
 
-		public function create_order() {
-
+		/**
+		 * Creates a new Order object.
+		 *
+		 * @see https://stripe.com/docs/api/curl#create_order Documentation
+		 *
+		 * @param  string $currency Three-letter ISO currency code, in lowercase. Must be a supported currency.
+		 * @param  array  $args     Additional args.
+		 * @return array            Returns an Order object if the call succeeded.
+		 */
+		public function create_order( string $currency, $args = array() ) {
+			$args['currency'] = $currency;
+			return $this->run( "orders", $args, 'POST' );
 		}
 
-		public function retrieve_order() {
-
+		/**
+		 * Retrieves the details of an existing order. Supply the unique order ID from either an order creation request or
+		 * the order list, and Stripe will return the corresponding order information.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_order Documentation
+		 *
+		 * @param  string $order_id The identifier of the order to be retrieved.
+		 * @return array            Returns an order object if a valid identifier was provided.
+		 */
+		public function retrieve_order( string $order_id ) {
+			return $this->run( "orders/$order_id" );
 		}
 
-		public function update_order() {
-
+		/**
+		 * Updates the specific order by setting the values of the parameters passed. Any parameters not provided will be
+		 * left unchanged. This request accepts only the metadata, and status as arguments.
+		 *
+		 * @see https://stripe.com/docs/api/curl#update_order Documentation
+		 *
+		 * @param  string $order_id The identifier of the order to be updated.
+		 * @param  array  $args     Additional args.
+		 * @return array            Returns the order object if the update succeeded.
+		 */
+		public function update_order( string $order_id, $args = array() ) {
+			return $this->run( "orders/$order_id", $args, 'POST' );
 		}
 
-		public function pay_order() {
-
+		/**
+		 * Pay an order by providing a source to create a payment.
+		 *
+		 * @see https://stripe.com/docs/api/curl#pay_order Documentation
+		 *
+		 * @param  string $order_id The identifier of the order to be payed.
+		 * @param  array  $args     Additional args.
+		 * @return array            Returns an Order object, along with its associated payment, if the call succeeded.
+		 */
+		public function pay_order( string $order_id, $args = array() ) {
+			return $this->run( "orders/$order_id/pay", $args, 'POST' );
 		}
 
-		public function list_orders() {
-
+		/**
+		 * Returns a list of your orders. The orders are returned sorted by creation date, with the most recently created
+		 * orders appearing first.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_orders Documentation
+		 *
+		 * @param  array  $args Additional args.
+		 * @return array        A dictionary with a data property that contains an array of up to limit orders, starting
+		 *                      after order starting_after. Each entry in the array is a separate order object. If no more
+		 *                      orders are available, the resulting array will be empty. This request should never return
+		 *                      an error.
+		 */
+		public function list_orders( $args = array() ) {
+			return $this->run( "orders" );
 		}
 
-		public function return_order() {
-
+		/**
+		 * Return all or part of an order. The order must have a status of paid or fulfilled before it can be returned.
+		 * Once all items have been returned, the order will become canceled or returned depending on which status the
+		 * order started in.
+		 *
+		 * @see https://stripe.com/docs/api/curl#return_order Documentation
+		 *
+		 * @param  string $order_id The identifier of the order to be returned.
+		 * @param  array  $args     Additional args.
+		 * @return array            A dictionary with an items property that contains an array of returned. Additionally,
+		 *                          the dictionary contains the property amount to indicate the total price of the items
+		 *                          returned.
+		 */
+		public function return_order( string $order_id, $args = array()) {
+			return $this->run( "orders/$order_id/returns", $args, 'POST' );
 		}
-
-		/* ORDER ITEMS. */
-
-
 
 		/* RETURNS. */
 
-		public function retrieve_order_return() {
-
+		/**
+		 * Retrieves the details of an existing order return. Supply the unique order ID from either an order return
+		 * creation request or the order return list, and Stripe will return the corresponding order information.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_order_return Documentation
+		 *
+		 * @param  string $order_return_id The identifier of the order return to be retrieved.
+		 * @return array                   Returns an order return object if a valid identifier was provided.
+		 */
+		public function retrieve_order_return( string $order_return_id) {
+			return $this->run( "order_returns/$order_return_id" );
 		}
 
-		public function list_order_returns() {
-
+		/**
+		 * Returns a list of your order returns. The returns are returned sorted by creation date, with the most recently
+		 * created return appearing first.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_order_returns Documentation
+		 *
+		 * @param  array  $args  Additional args.
+		 * @return array         A dictionary with a data property that contains an array of up to limit order returns,
+		 *                       starting after starting_after. Each entry in the array is a separate order return object.
+		 *                       If no more returns are available, the resulting array will be empty. This request should
+		 *                       never return an error.
+		 */
+		public function list_order_returns( $args = array() ) {
+			return $this->run( "order_returns", $args );
 		}
 
 		/* SKUS. */
 
-		public function create_sku() {
+		/**
+		 * Creates a new SKU associated with a product.
+		 *
+		 * @see https://stripe.com/docs/api/curl#create_sku-inventory Documentation
+		 *
+		 * @param  string $currency  Three-letter ISO currency code, in lowercase. Must be a supported currency.
+		 * @param  array  $inventory Description of the SKU’s inventory.
+		 * @param  int    $price     The cost of the item as a nonnegative integer in the smallest currency unit (that is,
+		 *                           100 cents to charge $1.00, or 100 to charge ¥100, Japanese Yen being a zero-decimal
+		 *                           currency).
+		 * @param  string $product   The ID of the product this SKU is associated with. Must be a product with type good.
+		 * @param  array  $args      Additional args.
+		 * @return array             Returns a SKU object if the call succeeded.
+		 */
+		public function create_sku( string $currency, array $inventory, int $price, string $product, $args = array() ) {
+			$args = array_merge( compact ( 'currency', 'inventory', 'price', 'product' ), $args );
+			return $this->run( "skus", $args, 'POST' );
+		}
+
+		/**
+		 * Retrieves the details of an existing SKU. Supply the unique SKU identifier from either a SKU creation request or
+		 * from the product, and Stripe will return the corresponding SKU information.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_sku Documentation
+		 *
+		 * @param  string $sku_id The identifier of the SKU to be retrieved.
+		 * @return array          Returns a SKU object if a valid identifier was provided.
+		 */
+		public function retrieve_sku( string $sku_id ) {
+			return $this->run( "skus/$sku_id" );
+		}
+
+		/**
+		 * Updates the specific SKU by setting the values of the parameters passed. Any parameters not provided will be
+		 * left unchanged.
+		 *
+		 * Note that a SKU’s attributes are not editable. Instead, you would need to deactivate the existing SKU and create
+		 * a new one with the new attribute values.
+		 *
+		 * @see https://stripe.com/docs/api/curl#update_sku Documentation
+		 *
+		 * @param  string $sku_id The identifier of the SKU to be updated.
+		 * @param  array  $args   Additional args.
+		 * @return array          Returns a SKU object if the call succeeded.
+		 */
+		public function update_sku( string $sku_id, $args = array() ) {
+			return $this->run( "skus/$sku_id", $args, 'POST' );
+		}
+
+		/**
+		 * Returns a list of your SKUs. The SKUs are returned sorted by creation date, with the most recently created SKUs
+		 * appearing first.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_skus Documentation
+		 *
+		 * @param  array  $args Additional args.
+		 * @return array        A dictionary with a data property that contains an array of up to limit SKUs, starting after
+		 *                      SKU starting_after. Each entry in the array is a separate SKU object. If no more SKUs are
+		 *                      available, the resulting array will be empty. If you provide a non-existent product ID, this
+		 *                      request will return an error. Similarly, if you try to filter products by an attribute that
+		 *                      is not supported by the specified product, this request will return an error.
+		 */
+		public function list_skus( $args = array() ) {
+			return $this->run( "skus", $args );
 
 		}
 
-		public function retrieve_sku() {
-
-		}
-
-		public function update_sku() {
-
-		}
-
-		public function list_skus() {
-
-		}
-
-		public function delete_sku() {
-
+		/**
+		 * Delete a SKU. Deleting a SKU is only possible until it has been used in an order.
+		 *
+		 * @see https://stripe.com/docs/api/curl#delete_sku Documentation
+		 *
+		 * @param  string $sku_id The identifier of the SKU to be deleted.
+		 * @return array          Returns an object with a deleted parameter on success. Otherwise, this call returns an error.
+		 */
+		public function delete_sku( string $sku_id ) {
+			return $this->run( "skus/$sku_id", array(), 'DELETE' );
 		}
 
 		/* ------------------- SIGMA --------------------- */
 
 		/* SCHEDULED QUERIES. */
 
-		public function retrieve_scheduled_query_run() {
-
+		/**
+		 * Retrieves the details of an scheduled query run.
+		 *
+		 * @see https://stripe.com/docs/api/curl#retrieve_scheduled_query_run Documentation
+		 *
+		 * @param  string $scheduled_query_run_id Unique identifier for the object.
+		 * @return array                          Returns the scheduled query run object if a valid identifier was provided.
+		 */
+		public function retrieve_scheduled_query_run( string $scheduled_query_run_id) {
+			return $this->run( "scheduled_query_runs/$scheduled_query_run_id" );
 		}
 
-		public function list_scheduled_query_runs() {
-
+		/**
+		 * Returns a list of scheduled query runs.
+		 *
+		 * @see https://stripe.com/docs/api/curl#list_scheduled_query_run Documentation
+		 *
+		 * @param  array  $args Additional args.
+		 * @return array        A paginated list of all scheduled query runs.
+		 */
+		public function list_scheduled_query_runs( $args = array() ) {
+			return $this->run( "scheduled_query_runs", $args );
 		}
 
 		/* ------------------- ERROR CODES --------------------- */

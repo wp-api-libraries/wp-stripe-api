@@ -3262,7 +3262,6 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 */
 		public function list_skus( $args = array() ) {
 			return $this->run( "skus", $args );
-
 		}
 
 		/**

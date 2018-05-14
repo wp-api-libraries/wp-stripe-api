@@ -1517,7 +1517,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object              The card object.
 		 */
 		public function retrieve_card( $customer_id, $card_id ) {
-			return $this->run( 'customers/'.$customer_id.'/sources/'.$source_id );
+			return $this->run( 'customers/'.$customer_id.'/sources/'.$card_id );
 		}
 
 		/**

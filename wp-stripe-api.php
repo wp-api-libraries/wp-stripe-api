@@ -1393,7 +1393,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
-		 * List all bank accounts
+		 * List all customer sources
 		 *
 		 * You can see a list of the bank accounts belonging to a Customer. Note that
 		 * the 10 most recent sources are always available by default on the Customer.
@@ -1419,8 +1419,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array  $args        (Default array()) Additional arguments to filter by.
 		 * @return object              A list of the bank accounts stored on the customer.
 		 */
-		public function list_bank_accounts( $customer_id, $args = array() ) {
-			return $this->run( 'customers/'.$customer_id.'/sources/'.$account_id, $args );
+		public function list_sources( $customer_id, $args = array() ) {
+			return $this->run( 'customers/'.$customer_id.'/sources', $args );
 		}
 
 		/* CARDS. */

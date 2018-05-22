@@ -1318,7 +1318,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		/**
-		 * Retrieve a bank account
+		 * Retrieve a bank account (actually just a source)
 		 *
 		 * By default, you can see the 10 most recent sources stored on a Customer directly
 		 * on the object, but you can also retrieve details about a specific bank account
@@ -1328,8 +1328,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  string $account_id  The ID of the customer to retrieve.
 		 * @return object              The bank account object.
 		 */
-		public function retrieve_bank_account( $customer_id, $account_id ) {
-			return $this->run( 'customers/'.$customer_id.'/sources/'.$account_id );
+		public function retrieve_customer_source( $customer_id, $source_id ) {
+			return $this->run( 'customers/'.$customer_id.'/sources/'.$source_id );
 		}
 
 		/**

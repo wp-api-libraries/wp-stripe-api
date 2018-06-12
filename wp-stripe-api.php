@@ -110,6 +110,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		}
 
 		protected function run( $route, $body = array(), $method = 'GET' ){
+			// Strip slashes from route.
+			$route = rtrim( $route, '/' );
 			return $this->build_request( $route, $body, $method )->fetch();
 		}
 

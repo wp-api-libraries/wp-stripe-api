@@ -2346,7 +2346,11 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                                  change to true.
 		 */
 		public function cancel_subscription( string $subscription_id, bool $at_period_end = false ) {
-			return $this->run( "subscriptions/$subscription_id", array('at_period_end' => $at_period_end ), 'DELETE' );
+			$args = array();
+			if( $at_period_end ){
+				$args['at_period_end'] = $at_period_end;
+			}
+			return $this->run( "subscriptions/$subscription_id", $args, 'DELETE' );
 		}
 
 		/**

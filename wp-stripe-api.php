@@ -16,7 +16,8 @@
 * GitHub Branch: master
 */
 /* Exit if accessed directly. */
-if ( ! defined( 'ABSPATH' ) ) { exit; }
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; }
 
 /* Check if class exists. */
 if ( ! class_exists( 'StripeAPI' ) ) {
@@ -36,12 +37,12 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 
 		protected $idempotent_key;
 
-		public function __construct( $api_key, bool $is_debug = false ){
+		public function __construct( $api_key, bool $is_debug = false ) {
 			$this->set_api_key( $api_key );
 			$this->is_debug = $is_debug;
 		}
 
-		public function set_api_key( $api_key ){
+		public function set_api_key( $api_key ) {
 			$this->api_key = $api_key;
 		}
 
@@ -98,29 +99,29 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 			return ( 200 <= $code && 300 > $code );
 		}
 
-		protected function set_headers(){
+		protected function set_headers() {
 			$this->args['headers'] = array(
 				'Authorization' => ' Bearer ' . $this->api_key,
-				'Content-Type' => 'application/x-www-form-urlencoded',
+				'Content-Type'  => 'application/x-www-form-urlencoded',
 			);
 
-		  if( 'GET' !== $this->args['method'] && 'DELETE' !== $this->args['method'] ){
+			if ( 'GET' !== $this->args['method'] && 'DELETE' !== $this->args['method'] ) {
 				$this->args['headers']['Idempotency-Key'] = $this->new_uuid();
 			}
 
 		}
 
-		protected function clear(){
+		protected function clear() {
 			$this->args = array();
 		}
 
-		protected function run( $route, $body = array(), $method = 'GET' ){
+		protected function run( $route, $body = array(), $method = 'GET' ) {
 			// Strip slashes from route.
 			$route = rtrim( $route, '/' );
 			return $this->build_request( $route, $body, $method )->fetch();
 		}
 
-		public function new_uuid(){
+		public function new_uuid() {
 			// Can we just bin2hex(random_bytes(16)) instead? For cleanliness.
 			return bin2hex( random_bytes( 16 ) );
 		}
@@ -191,7 +192,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *     Only returns transactions that are a charge, refund, adjustment, application_fee,
 		 *     application_fee_refund, transfer, payment, payout, payout_failure, or stripe_fee.
 		 *
-		 * @param  array  $args Additional arguments to supply to your query.
+		 * @param  array $args Additional arguments to supply to your query.
 		 * @return object       A dictionary with a data property that contains an array
 		 *                      of up to limit transactions, starting after transaction
 		 *                      starting_after. Each entry in the array is a separate
@@ -251,18 +252,18 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                          incorrect CVC and address information.
 		 */
 		public function create_charge( $amount, $source = null, $customer = null, $currency = 'usd', $args = array() ) {
-			if( null === $source && null === $token ){
+			if ( null === $source && null === $token ) {
 				return new WP_Error( 'invalid-data', __( 'Must provide either source or token parameters for creating a charge.', 'wp-stripe-api' ), array( 'status' => 400 ) );
 			}
 
 			$args['amount']   = $amount;
 			$args['currency'] = $currency;
 
-			if( null !== $source ){
+			if ( null !== $source ) {
 				$args['source'] = $source;
 			}
 
-			if( null !== $token ){
+			if ( null !== $token ) {
 				$args['token'] = $token;
 			}
 
@@ -282,7 +283,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                           and returns an error otherwise.
 		 */
 		public function retrieve_charge( $charge_id ) {
-			return $this->run( 'charges/'.$charge_id );
+			return $this->run( 'charges/' . $charge_id );
 		}
 
 		/**
@@ -302,7 +303,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                           call will return an error if update parameters are invalid.
 		 */
 		public function update_charge( $charge_id, $args = array() ) {
-			return $this->run( 'charges/'.$charge_id, $args, 'POST' );
+			return $this->run( 'charges/' . $charge_id, $args, 'POST' );
 		}
 
 		/**
@@ -327,7 +328,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                           this method will return an error.
 		 */
 		public function capture_charge( $charge_id, $args = array() ) {
-			return $this->run( 'charges/'.$charge_id.'/capture', $args, 'POST' );
+			return $this->run( 'charges/' . $charge_id . '/capture', $args, 'POST' );
 		}
 
 		/**
@@ -336,33 +337,33 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * Returns a list of charges you’ve previously created. The charges are returned
 		 * in sorted order, with the most recent charges appearing first.
 		 *
-		 * @param  array  $args (Default: array()) Optional arguments to clarify the query.
-		 *                      created:
-		 *                        A filter on the list based on the object created
-		 *                        field. The value can be a string with an integer Unix timestamp,
-		 *                        or it can be a dictionary with the following options:
-		 *                      customer:
-		 *                        Only return charges for the customer specified by this customer ID.
-		 *                      ending_before:
-		 *                        A cursor for use in pagination. ending_before is an
-		 *                        object ID that defines your place in the list. For instance,
-		 *                        if you make a list request and receive 100 objects, starting
-		 *                        with obj_bar, your subsequent call can include ending_before=obj_bar
-		 *                        in order to fetch the previous page of the list.
-		 *                      limit:
-		 *                        A limit on the number of objects to be returned. Limit
-		 *                        can range between 1 and 100 items, and the default is 10 items.
-		 *                      source:
-		 *                        A filter on the list based on the source of the charge.
-		 *                        The value can be a dictionary with the following options:
-		 *                      starting_after:
-		 *                        A cursor for use in pagination. starting_after is an object
-		 *                        ID that defines your place in the list. For instance, if
-		 *                        you make a list request and receive 100 objects, ending with
-		 *                        obj_foo, your subsequent call can include starting_after=obj_foo
-		 *                        in order to fetch the next page of the list.
-		 *                      transfer_group:
-		 *                        Only return charges for this transfer group.
+		 * @param  array $args (Default: array()) Optional arguments to clarify the query.
+		 *                     created:
+		 *                       A filter on the list based on the object created
+		 *                       field. The value can be a string with an integer Unix timestamp,
+		 *                       or it can be a dictionary with the following options:
+		 *                     customer:
+		 *                       Only return charges for the customer specified by this customer ID.
+		 *                     ending_before:
+		 *                       A cursor for use in pagination. ending_before is an
+		 *                       object ID that defines your place in the list. For instance,
+		 *                       if you make a list request and receive 100 objects, starting
+		 *                       with obj_bar, your subsequent call can include ending_before=obj_bar
+		 *                       in order to fetch the previous page of the list.
+		 *                     limit:
+		 *                       A limit on the number of objects to be returned. Limit
+		 *                       can range between 1 and 100 items, and the default is 10 items.
+		 *                     source:
+		 *                       A filter on the list based on the source of the charge.
+		 *                       The value can be a dictionary with the following options:
+		 *                     starting_after:
+		 *                       A cursor for use in pagination. starting_after is an object
+		 *                       ID that defines your place in the list. For instance, if
+		 *                       you make a list request and receive 100 objects, ending with
+		 *                       obj_foo, your subsequent call can include starting_after=obj_foo
+		 *                       in order to fetch the next page of the list.
+		 *                     transfer_group:
+		 *                       Only return charges for this transfer group.
 		 * @return object       A dictionary with a data property that contains an array of
 		 *                      up to limit charges, starting after charge starting_after. Each
 		 *                      entry in the array is a separate charge object. If no more charges
@@ -383,33 +384,33 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * $args argument supports the following properties.
 		 *
 		 * account_balance
-     * An integer amount in cents that is the starting account balance for your customer. A negative amount represents a credit that will be used before attempting any charges to the customer’s card; a positive amount will be added to the next invoice.
-     *
-     * business_vat_id:
-     *   The customer’s VAT identification number. If you are using Relay, this
-     *   field gets passed to tax provider you are using for your orders.
-     * coupon:
-     *   If you provide a coupon code, the customer will have a discount applied
-     *   on all recurring charges. Charges you create through the API will not
-     *   have the discount.
-     * default_source:
-     *   The default source to use.
-     * description:
-     *   An arbitrary string that you can attach to a customer object. It is
-     *   displayed alongside the customer in the dashboard.
-     * email:
-     *   Customer’s email address. It’s displayed alongside the customer in your
-     *   dashboard and can be useful for searching and tracking. This may be up to
-     *   512 characters. This will be unset if you POST an empty value.
-     * metadata:
-     *   A set of key/value pairs that you can attach to a customer object. It can be
-     *   useful for storing additional information about the customer in a structured format.
-     * shipping:
-     *   Shipping meta-information.
-     * source:
-     *   The source can either be a Token’s or a Source’s ID, as returned by Elements,
-     *   or a dictionary containing a user’s credit card details (with the options shown below).
-     *
+		 * An integer amount in cents that is the starting account balance for your customer. A negative amount represents a credit that will be used before attempting any charges to the customer’s card; a positive amount will be added to the next invoice.
+		 *
+		 * business_vat_id:
+		 *   The customer’s VAT identification number. If you are using Relay, this
+		 *   field gets passed to tax provider you are using for your orders.
+		 * coupon:
+		 *   If you provide a coupon code, the customer will have a discount applied
+		 *   on all recurring charges. Charges you create through the API will not
+		 *   have the discount.
+		 * default_source:
+		 *   The default source to use.
+		 * description:
+		 *   An arbitrary string that you can attach to a customer object. It is
+		 *   displayed alongside the customer in the dashboard.
+		 * email:
+		 *   Customer’s email address. It’s displayed alongside the customer in your
+		 *   dashboard and can be useful for searching and tracking. This may be up to
+		 *   512 characters. This will be unset if you POST an empty value.
+		 * metadata:
+		 *   A set of key/value pairs that you can attach to a customer object. It can be
+		 *   useful for storing additional information about the customer in a structured format.
+		 * shipping:
+		 *   Shipping meta-information.
+		 * source:
+		 *   The source can either be a Token’s or a Source’s ID, as returned by Elements,
+		 *   or a dictionary containing a user’s credit card details (with the options shown below).
+		 *
 		 * @param  string $email The customer's email.
 		 * @param  array  $args  (Default: array()) Additional properties to pass in.
 		 * @return object        Returns a customer object if the call succeeded. The
@@ -426,7 +427,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                       when retrieving the customer.
 		 */
 		public function create_customer( $email = '', $args = array() ) {
-			if( '' !== $email ){
+			if ( '' !== $email ) {
 				$args['email'] = $email;
 			}
 
@@ -447,7 +448,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                             property, which will be true.
 		 */
 		public function retrieve_customer( $customer_id ) {
-			return $this->run( 'customers/'.$customer_id );
+			return $this->run( 'customers/' . $customer_id );
 		}
 
 		/**
@@ -477,7 +478,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                             specifying an invalid coupon or an invalid source).
 		 */
 		public function update_customer( $customer_id, $args = array() ) {
-			return $this->run( 'customers/'.$customer_id, $args, 'POST' );
+			return $this->run( 'customers/' . $customer_id, $args, 'POST' );
 		}
 
 		/**
@@ -499,7 +500,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                             new subscription).
 		 */
 		public function delete_customer( $customer_id ) {
-			return $this->run( 'customers/'.$customer_id, array(), 'DELETE' );
+			return $this->run( 'customers/' . $customer_id, array(), 'DELETE' );
 		}
 
 		/**
@@ -530,8 +531,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *     100 objects, ending with obj_foo, your subsequent call can include
 		 *     starting_after=obj_foo in order to fetch the next page of the list.
 		 *
-		 * @param  array  $args (Default: array()) An array of arguments that can
-		 *                      modify the query.
+		 * @param  array $args (Default: array()) An array of arguments that can
+		 *                     modify the query.
 		 * @return [type]       A dictionary with a data property that contains an array
 		 *                      of up to limit customers, starting after customer starting_after.
 		 *                      Passing an optional email will result in filtering to customers
@@ -557,7 +558,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                            Returns an error otherwise.
 		 */
 		public function retrieve_dispute( $dispute_id ) {
-			return $this->run( 'disputes/'.$dispute_id );
+			return $this->run( 'disputes/' . $dispute_id );
 		}
 
 		/**
@@ -587,21 +588,22 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *       shipping_carrier, shipping_date, shipping_documentation, shipping_tracking_number,
 		 *       uncategorized_file, uncategorized_text
 		 *   metadata:
-		 * 	   A set of key/value pairs that you can attach to a dispute object. It
-		 * 	   can be useful for storing additional information about the dispute in
-		 * 	   a structured format.
+		 *     A set of key/value pairs that you can attach to a dispute object. It
+		 *     can be useful for storing additional information about the dispute in
+		 *     a structured format.
 		 *   submit:
 		 *     Whether to immediately submit evidence to the bank. If false, evidence
 		 *     is staged on the dispute. Staged evidence is visible in the API and Dashboard,
 		 *     and can be submitted to the bank by making another request with this attribute
 		 *     set to true (the default).
+		 *
 		 * @param  string $dispute_id ID of dispute to update.
 		 * @param  array  $args       (Default: array()) An array of arguments to update
 		 *                            for the dispute.
 		 * @return object             Returns the dispute object.
 		 */
 		public function update_dispute( $dispute_id, $args = array() ) {
-			return $this->run( 'disputes/'.$dispute_id, $args, 'POST' );
+			return $this->run( 'disputes/' . $dispute_id, $args, 'POST' );
 		}
 
 		/**
@@ -617,7 +619,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object             Returns the dispute object.
 		 */
 		public function close_dispute( $dispute_id ) {
-			return $this->run( 'disputes/'.$dispute_id.'/close', array(), 'POST' );
+			return $this->run( 'disputes/' . $dispute_id . '/close', array(), 'POST' );
 		}
 
 		/**
@@ -644,7 +646,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *     100 objects, ending with obj_foo, your subsequent call can include
 		 *     starting_after=obj_foo in order to fetch the next page of the list.
 		 *
-		 * @param  array  $args [description]
+		 * @param  array $args [description]
 		 * @return object       A dictionary with a data property that contains an array
 		 *                      of up to limit disputes, starting after dispute starting_after.
 		 *                      Each entry in the array is a separate dispute object. If no
@@ -678,7 +680,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                    will also contain a dictionary containing the changes.
 		 */
 		public function retrieve_event( $id ) {
-			return $this->run( 'events/'.$id );
+			return $this->run( 'events/' . $id );
 		}
 
 		/**
@@ -711,7 +713,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *     will be filtered to include only events with a matching event property.
 		 *     You may pass either type or types, but not both.
 		 *
-		 * @param  array  $args (Default: array() Additional optional arguments to pass.
+		 * @param  array $args (Default: array() Additional optional arguments to pass.
 		 * @return object       A dictionary with a data property that contains an array
 		 *                      of up to limit events, starting after event starting_after.
 		 *                      Each entry in the array is a separate event object. If no
@@ -746,7 +748,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		public function create_file_upload( $file_path, $purpose ) {
 			$args = array(
 				'purpose' => $purpose,
-				'file'    => $file_path
+				'file'    => $file_path,
 			);
 
 			return $this->run( 'files', $args, 'POST' );
@@ -764,7 +766,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                         was provided, and returns an error otherwise.
 		 */
 		public function retreive_file_upload( $file_id ) {
-			return $this->run( 'files/'.$file_id );
+			return $this->run( 'files/' . $file_id );
 		}
 
 		/**
@@ -794,7 +796,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *     The file purpose to filter queries by. If none is provided, files will
 		 *     not be filtered by purpose.
 		 *
-		 * @param  array  $args (Default: array()) Optional arguments for the query.
+		 * @param  array $args (Default: array()) Optional arguments for the query.
 		 * @return object       A dictionary with a data property that contains an array
 		 *                      of up to limit file uploads, starting after file upload
 		 *                      starting_after. Each entry in the array is a separate file
@@ -859,7 +861,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                       marked as pending.
 		 */
 		public function create_payout( $amount, $args = array() ) {
-			if( ! isset( $args['currency'] ) ){
+			if ( ! isset( $args['currency'] ) ) {
 				$args['currency'] = 'usd';
 			}
 
@@ -880,7 +882,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                            was provided, and returns an error otherwise.
 		 */
 		public function retreive_payout( $payment_id ) {
-			return $this->run( 'payouts/'.$payment_id );
+			return $this->run( 'payouts/' . $payment_id );
 		}
 
 		/**
@@ -900,7 +902,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		public function update_payout( $payment_id, $metadata = null ) {
 			$args = ( null !== $metadata ) ? array( 'metadata' => $metadata ) : array();
 
-			return $this->run( 'payouts/'.$payment_id, $args, 'POST' );
+			return $this->run( 'payouts/' . $payment_id, $args, 'POST' );
 		}
 
 		/**
@@ -933,7 +935,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *   status:
 		 *     Only return payouts that have the given status: pending, paid, failed, or canceled
 		 *
-		 * @param  array  $args (Default: array()) Additional query arguments.
+		 * @param  array $args (Default: array()) Additional query arguments.
 		 * @return object       A dictionary with a data property that contains an array
 		 *                      of up to limit payouts, starting after payout starting_after.
 		 *                      Each entry in the array is a separate payout object. If no more
@@ -956,7 +958,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                           or cannot be canceled.
 		 */
 		public function cancel_payout( $payout_id ) {
-			return $this->run( 'payouts/'.$payout_id.'/cancel', array(), 'POST' );
+			return $this->run( 'payouts/' . $payout_id . '/cancel', array(), 'POST' );
 		}
 
 		/* PRODUCTS. */
@@ -974,7 +976,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return array            Product Object
 		 */
 		public function create_product( $name, $type, $optional = array() ) {
-			$args = array_merge( compact ( 'name', 'type' ), $optional );
+			$args = array_merge( compact( 'name', 'type' ), $optional );
 
 			return $this->run( 'products', $args, 'POST' );
 		}
@@ -1077,7 +1079,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                           Returns an error otherwise.
 		 */
 		public function retreive_refund( $refund_id ) {
-			return $this->run( 'refunds/'.$refund_id );
+			return $this->run( 'refunds/' . $refund_id );
 		}
 
 		/**
@@ -1097,7 +1099,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                           This call will return an error if update parameters are invalid.
 		 */
 		public function update_refund( $refund_id, $metadata ) {
-			return $this->run( 'refunds/'.$refund_id, array( 'metadata' => $metadata ), 'POST' );
+			return $this->run( 'refunds/' . $refund_id, array( 'metadata' => $metadata ), 'POST' );
 		}
 
 		/**
@@ -1125,7 +1127,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *     100 objects, ending with obj_foo, your subsequent call can include
 		 *     starting_after=obj_foo in order to fetch the next page of the list.
 		 *
-		 * @param  array  $args (Default: array()) Additional arguments to query by.
+		 * @param  array $args (Default: array()) Additional arguments to query by.
 		 * @return object       A dictionary with a data property that contains an array
 		 *                      of up to limit refunds, starting after refund starting_after.
 		 *                      Each entry in the array is a separate refund object. If no
@@ -1150,25 +1152,25 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * In most cases, you should create tokens client-side using Checkout, Elements,
 		 * or our mobile libraries, instead of using the API.
 		 *
-		 * @param  array  $card The card this token will represent. If you also pass
-		 *                      in a customer, the card must be the ID of a card
-		 *                      belonging to the customer. Otherwise, if you do not
-		 *                      pass a customer, a dictionary containing a user's credit
-		 *                      card details, with the options described below:
-		 *                      Required:
-		 *                        exp_month, exp_year, number, cvc (probably).
-		 *                      Optional:
-		 *                        address_city, address_country, address_line1, address_line2
-		 *                        address_state, address_zip, currency, name, cvc (unlikely)
+		 * @param  array $card The card this token will represent. If you also pass
+		 *                     in a customer, the card must be the ID of a card
+		 *                     belonging to the customer. Otherwise, if you do not
+		 *                     pass a customer, a dictionary containing a user's credit
+		 *                     card details, with the options described below:
+		 *                     Required:
+		 *                       exp_month, exp_year, number, cvc (probably).
+		 *                     Optional:
+		 *                       address_city, address_country, address_line1, address_line2
+		 *                       address_state, address_zip, currency, name, cvc (unlikely)
 		 * @return object       The created card token object is returned if successful.
 		 *                      Otherwise, this call returns an error.
 		 */
-		public function create_card_token( $card, $customer = null ){
+		public function create_card_token( $card, $customer = null ) {
 			$args = array(
-				'card' => $card
+				'card' => $card,
 			);
 
-			if( null !== $customer ){
+			if ( null !== $customer ) {
 				$args['customer'] = $customer;
 			}
 
@@ -1197,10 +1199,10 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 */
 		public function create_bank_account_token( $bank_account, $customer = null ) {
 			$args = array(
-				'bank_account' => $bank_account
+				'bank_account' => $bank_account,
 			);
 
-			if( null !== $customer ){
+			if ( null !== $customer ) {
 				$args['customer'] = $customer;
 			}
 
@@ -1244,12 +1246,12 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object               The created account token object is returned if
 		 *                              successful. Otherwise, this call returns an error.
 		 */
-		public function create_account_token( $legal_entity, $tos = null ){
+		public function create_account_token( $legal_entity, $tos = null ) {
 			$args = array(
 				'account' => array(
 					'legal_entity'           => $legal_entity,
-					'tos_shown_and_accepted' => $tos
-				)
+					'tos_shown_and_accepted' => $tos,
+				),
 			);
 
 			return $this->run( 'tokens', $args, 'POST' );
@@ -1265,7 +1267,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                          Returns an error otherwise.
 		 */
 		public function retrieve_token( $token_id ) {
-			return $this->run( 'tokens/'.$token_id );
+			return $this->run( 'tokens/' . $token_id );
 		}
 
 		/* ------------------- PAYMENT METHODS --------------------- */
@@ -1314,14 +1316,14 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 */
 		public function create_bank_account( $customer_id, $source, $metadata = array() ) {
 			$args = array(
-				'source' => $source
+				'source' => $source,
 			);
 
-			if( ! empty( $metadata ) ){
+			if ( ! empty( $metadata ) ) {
 				$args['metadata'] = $metadata;
 			}
 
-			return $this->run( 'customers/'.$customer_id.'/sources', $args, 'POST' );
+			return $this->run( 'customers/' . $customer_id . '/sources', $args, 'POST' );
 		}
 
 		/**
@@ -1336,7 +1338,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object              The bank account object.
 		 */
 		public function retrieve_customer_source( $customer_id, $source_id ) {
-			return $this->run( 'customers/'.$customer_id.'/sources/'.$source_id );
+			return $this->run( 'customers/' . $customer_id . '/sources/' . $source_id );
 		}
 
 		/**
@@ -1351,7 +1353,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object              The bank account object.
 		 */
 		public function update_bank_account( $customer_id, $account_id, $args = array() ) {
-			return $this->run( 'customers/'.$customer_id.'/sources/'.$account_id, $args, 'POST' );
+			return $this->run( 'customers/' . $customer_id . '/sources/' . $account_id, $args, 'POST' );
 		}
 
 		/**
@@ -1372,18 +1374,18 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		public function verify_bank_account( $customer_id, $account_id, $amounts = array(), $verification_method = null ) {
 			$args = array();
 
-			if( ! empty( $amounts ) ){
+			if ( ! empty( $amounts ) ) {
 				$args['amounts'] = array(
 					intval( $amounts[0] ) % 100,
-					intval( $amounts[1] ) % 100
+					intval( $amounts[1] ) % 100,
 				);
 			}
 
-			if( null !== $verification_method ){
+			if ( null !== $verification_method ) {
 				$args['verification_method'] = $verification_method;
 			}
 
-			return $this->run( 'customers/'.$customer_id.'/sources/'.$account_id, $args, 'POST' );
+			return $this->run( 'customers/' . $customer_id . '/sources/' . $account_id, $args, 'POST' );
 		}
 
 		/**
@@ -1396,7 +1398,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object              The deleted bank account object.
 		 */
 		public function delete_bank_account( $customer_id, $account_id ) {
-			return $this->run( 'customers/'.$customer_id.'/sources/'.$account_id, array(), 'DELETE' );
+			return $this->run( 'customers/' . $customer_id . '/sources/' . $account_id, array(), 'DELETE' );
 		}
 
 		/**
@@ -1427,7 +1429,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object              A list of the bank accounts stored on the customer.
 		 */
 		public function list_sources( $customer_id, $args = array() ) {
-			return $this->run( 'customers/'.$customer_id.'/sources', $args );
+			return $this->run( 'customers/' . $customer_id . '/sources', $args );
 		}
 
 		/* CARDS. */
@@ -1505,11 +1507,11 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 				'source' => $source,
 			);
 
-			if( ! empty( $metadata ) ){
+			if ( ! empty( $metadata ) ) {
 				$args['metadata'] = $metadata;
 			}
 
-			return $this->run( 'customers/'.$customer_id.'/sources', $args, 'POST' );
+			return $this->run( 'customers/' . $customer_id . '/sources', $args, 'POST' );
 		}
 
 		/**
@@ -1524,7 +1526,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object              The card object.
 		 */
 		public function retrieve_card( $customer_id, $card_id ) {
-			return $this->run( 'customers/'.$customer_id.'/sources/'.$card_id );
+			return $this->run( 'customers/' . $customer_id . '/sources/' . $card_id );
 		}
 
 		/**
@@ -1558,13 +1560,14 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *     Additional metadata.
 		 *   name:
 		 *     Cardholder name.
+		 *
 		 * @param  [type] $customer_id [description]
 		 * @param  [type] $card_id     [description]
 		 * @param  array  $args        [description]
 		 * @return [type]              [description]
 		 */
 		public function update_card( $customer_id, $card_id, $args = array() ) {
-			return $this->run( 'customers/'.$customer_id.'/sources/'.$card_id, $args, 'POST' );
+			return $this->run( 'customers/' . $customer_id . '/sources/' . $card_id, $args, 'POST' );
 		}
 
 		/**
@@ -1590,7 +1593,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object              The deleted card object.
 		 */
 		public function delete_card( $customer_id, $card_id ) {
-			return $this->run( 'customers/'.$customer_id.'/sources/'.$card_id, array(), 'DELETE' );
+			return $this->run( 'customers/' . $customer_id . '/sources/' . $card_id, array(), 'DELETE' );
 		}
 
 		/**
@@ -1622,7 +1625,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                             recipient, or account.
 		 */
 		public function list_cards( $customer_id, $args = array() ) {
-			return $this->run( 'customers/'.$customer_id.'/sources', $args );
+			return $this->run( 'customers/' . $customer_id . '/sources', $args );
 		}
 
 		/* SOURCES. */
@@ -1699,11 +1702,11 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		public function retrieve_source( $source_id, $client_secret = null ) {
 			$args = array();
 
-			if( null !== $client_secret ){
+			if ( null !== $client_secret ) {
 					$args['client_secret'] = $client_secret;
 			}
 
-			return $this->run( 'sources/'.$source_id, $args );
+			return $this->run( 'sources/' . $source_id, $args );
 		}
 
 		/**
@@ -1722,7 +1725,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                           will return an error if update parameters are invalid.
 		 */
 		public function update_source( $source_id, $args = array() ) {
-			return $this->run( 'sources/'.$source_id, $args, 'POST' );
+			return $this->run( 'sources/' . $source_id, $args, 'POST' );
 		}
 
 		/**
@@ -1737,7 +1740,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object              The attached source object.
 		 */
 		public function attach_source( $customer_id, $source_id ) {
-			return $this->run( 'customers/'.$customer_id.'/sources', array( 'source' => $source_id ), 'POST' );
+			return $this->run( 'customers/' . $customer_id . '/sources', array( 'source' => $source_id ), 'POST' );
 		}
 
 		/**
@@ -1751,7 +1754,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return object              The detached source object.
 		 */
 		public function detach_source( $customer_id, $source_id ) {
-			return $this->run( 'customers/'.$customer_id.'/sources/'.$source_id, array(), 'DELETE' );
+			return $this->run( 'customers/' . $customer_id . '/sources/' . $source_id, array(), 'DELETE' );
 		}
 
 
@@ -1813,15 +1816,15 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *     Unix timestamp specifying the last time at which the coupon can be redeemed.
 		 *     After the redeem_by date, the coupon can no longer be applied to new customers.
 		 *
-		 * @param  array  $args Arguments for the coupon.
+		 * @param  array $args Arguments for the coupon.
 		 * @return object       The coupon object.
 		 */
 		public function create_coupon( $args = array() ) {
-			if( ! isset( $args['duration'] ) ){
+			if ( ! isset( $args['duration'] ) ) {
 				return new WP_Error( 'invalid-data', __( 'Duration field must be defined.', 'wp-stripe-api' ), array( 'status' => 400 ) );
 			}
 
-			if( ! isset( $args['percent_off'] ) && ! isset( $args['amount_off'] ) ){
+			if ( ! isset( $args['percent_off'] ) && ! isset( $args['amount_off'] ) ) {
 				return new WP_Error( 'invalid-data', __( 'You must pass either percent_off or amount_off.', 'wp-stripe-api' ), array( 'status' => 400 ) );
 			}
 
@@ -1838,7 +1841,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                           Returns an error otherwise.
 		 */
 		public function retrieve_coupon( $coupon_id ) {
-			return $this->run( 'coupons/'.$coupon_id );
+			return $this->run( 'coupons/' . $coupon_id );
 		}
 
 		/**
@@ -1857,7 +1860,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		public function update_coupon( $coupon_id, $metadata = null ) {
 			$args = ( null !== $metadata ) ? array( 'metadata' => $metadata ) : array();
 
-			return $this->run( 'coupons/'.$coupon_id, $args, 'POST' );
+			return $this->run( 'coupons/' . $coupon_id, $args, 'POST' );
 		}
 
 		/**
@@ -1874,7 +1877,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                           error, such as if the coupon has already been deleted.
 		 */
 		public function delete_coupon( $coupon_id ) {
-			return $this->run( 'coupons/'.$coupon_id, array(), 'DELETE' );
+			return $this->run( 'coupons/' . $coupon_id, array(), 'DELETE' );
 		}
 
 		/**
@@ -1899,7 +1902,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *     receive 100 objects, ending with obj_foo, your subsequent call can include
 		 *     starting_after=obj_foo in order to fetch the next page of the list.
 		 *
-		 * @param  array  $args (Default: array()) Additional arguments to filter by.
+		 * @param  array $args (Default: array()) Additional arguments to filter by.
 		 * @return object       A dictionary with a data property that contains an array
 		 *                      of up to limit coupons, starting after coupon starting_after.
 		 *                      Each entry in the array is a separate coupon object. If no
@@ -1923,7 +1926,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                             such as if no discount exists on this customer.
 		 */
 		public function delete_customer_discount( $customer_id ) {
-			return $this->run( 'customers/'.$customer_id.'/discount', array(), 'DELETE' );
+			return $this->run( 'customers/' . $customer_id . '/discount', array(), 'DELETE' );
 		}
 
 		/**
@@ -1938,7 +1941,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                                 on this subscription.
 		 */
 		public function delete_subscription_discount( $subscription_id ) {
-			return $this->run( 'subscriptions/'.$subscription_id.'/discount', array(), 'DELETE' );
+			return $this->run( 'subscriptions/' . $subscription_id . '/discount', array(), 'DELETE' );
 		}
 
 		/* INVOICES. */
@@ -2041,7 +2044,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @param  string $invoice_id The ID of the invoice containing the lines to be retrieved. Use a value of upcoming
 		 *                            to retrieve the upcoming invoice.
-		 * @param  array $args       Additional args to send to request.
+		 * @param  array  $args       Additional args to send to request.
 		 * @return array             List of invoice line items.
 		 */
 		public function retrieve_invoice_line_items( $invoice_id, $args = array() ) {
@@ -2073,7 +2076,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 */
 		public function retrieve_upcoming_invoice( $customer_id, $args = array() ) {
 			$args['customer'] = $customer_id;
-			return $this->run( "invoices/upcoming", $args );
+			return $this->run( 'invoices/upcoming', $args );
 		}
 
 		/**
@@ -2116,7 +2119,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return array       List of invoices.
 		 */
 		public function list_invoices( $args = array() ) {
-			return $this->run( "invoices", $args );
+			return $this->run( 'invoices', $args );
 		}
 
 		/* INVOICE ITEMS. */
@@ -2183,14 +2186,14 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @see https://stripe.com/docs/api/curl#list_invoiceitems Documentation
 		 *
-		 * @param  array  $args Additional args to send to request.
+		 * @param  array $args Additional args to send to request.
 		 * @return array        A dictionary with a data property that contains an array of up to limit invoice items,
 		 *                      starting after invoice item starting_after. Each entry in the array is a separate invoice
 		 *                      item object. If no more invoice items are available, the resulting array will be empty.
 		 *                      This request should never return an error.
 		 */
 		public function list_invoice_items( $args = array() ) {
-			return $this->run( "invoiceitems", $args );
+			return $this->run( 'invoiceitems', $args );
 		}
 
 		/* PLANS. */
@@ -2212,8 +2215,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return array                  Returns the plan object.
 		 */
 		public function create_plan( string $currency, string $interval, $product, string $id = '' ) {
-			$args = compact ( 'currency', 'interval', 'product' );
-			if( ! empty( $id ) ){
+			$args = compact( 'currency', 'interval', 'product' );
+			if ( ! empty( $id ) ) {
 				$args['id'] = $id;
 			}
 
@@ -2265,14 +2268,14 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @see https://stripe.com/docs/api/curl#plans Documentation
 		 *
-		 * @param  array  $args Additional args to send to the request.
+		 * @param  array $args Additional args to send to the request.
 		 * @return array        A dictionary with a data property that contains an array of up to limit plans, starting
 		 *                      after plan starting_after. Each entry in the array is a separate plan object. If no more
 		 *                      plans are available, the resulting array will be empty. This request should never return an
 		 *                      error.
 		 */
 		public function list_plans( $args = array() ) {
-			return $this->run( "plans", $args );
+			return $this->run( 'plans', $args );
 		}
 
 		/* SUBSCRIPTIONS. */
@@ -2352,7 +2355,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 */
 		public function cancel_subscription( string $subscription_id, bool $at_period_end = false ) {
 			$args = array();
-			if( $at_period_end ){
+			if ( $at_period_end ) {
 				$args['at_period_end'] = $at_period_end;
 			}
 			return $this->run( "subscriptions/$subscription_id", $args, 'DELETE' );
@@ -2364,11 +2367,11 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @see https://stripe.com/docs/api/curl#list_subscriptions Documentation
 		 *
-		 * @param  array  $args Additional args to send to request.
+		 * @param  array $args Additional args to send to request.
 		 * @return array        Returns a list of subscriptions.
 		 */
 		public function list_subscriptions( $args = array() ) {
-			return $this->run( "subscriptions", $args );
+			return $this->run( 'subscriptions', $args );
 		}
 
 		/* SUBSCRIPTION ITEMS. */
@@ -2384,7 +2387,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return array                   Returns the created Subscription Item object, if successful. Otherwise, this call returns an error.
 		 */
 		public function create_subscription_item( string $plan_id, string $subscription_id, $args = array() ) {
-			$args['plan'] = $plan_id;
+			$args['plan']         = $plan_id;
 			$args['subscription'] = $subscription_id;
 
 			return $this->run( 'subscription_items', $args, 'POST' );
@@ -2398,7 +2401,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  string $subscription_item_id The identifier of the subscription item to retrieve.
 		 * @return array                        Returns a subscription item if a valid subscription item ID was provided. Returns an error otherwise.
 		 */
-		public function retrieve_subscription_item( string $subscription_item_id) {
+		public function retrieve_subscription_item( string $subscription_item_id ) {
 			return $this->run( "subscription_items/$subscription_item_id" );
 
 		}
@@ -2448,7 +2451,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 */
 		public function list_subscription_items( string $subscription_item_id, $args = array() ) {
 			$args['subscription'] = $subscription_item_id;
-			return $this->run( "subscription_items", $args );
+			return $this->run( 'subscription_items', $args );
 		}
 
 		/* Usage Records */
@@ -2468,7 +2471,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return array                   Returns the usage record object.
 		 */
 		public function create_usage_record( string $subscription_item_id, int $quantity, int $timestamp, string $action = 'increment' ) {
-			$args = compact ( 'quantity', 'timestamp', 'action' );
+			$args = compact( 'quantity', 'timestamp', 'action' );
 
 			return $this->run( "subscription_items/$subscription_item_id/usage_records", $args, 'POST' );
 		}
@@ -2498,8 +2501,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                         publishable keys for that account.
 		 */
 		public function create_account( string $type, string $email, string $country = '', $args = array() ) {
-			$args = array_merge( compact ( 'type', 'email', 'country' ), $args);
-			return $this->run( "accounts", $args, 'POST' );
+			$args = array_merge( compact( 'type', 'email', 'country' ), $args );
+			return $this->run( 'accounts', $args, 'POST' );
 		}
 
 		/**
@@ -2577,13 +2580,13 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @see https://stripe.com/docs/api/curl#list_accounts Documentation
 		 *
-		 * @param  array  $args Optional request args.
+		 * @param  array $args Optional request args.
 		 * @return array        A dictionary with a data property that contains an array of up to limit accounts, starting
 		 *                      after account starting_after. Each entry in the array is a separate Account object. If no
 		 *                      more accounts are available, the resulting array is empty.
 		 */
 		public function list_connected_accounts( $args = array() ) {
-			return $this->run( "accounts", $args );
+			return $this->run( 'accounts', $args );
 		}
 
 		/**
@@ -2627,12 +2630,12 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                          the fee has already been refunded, or if an invalid fee identifier was provided.
 		 */
 		public function create_application_fee_refund( string $fee_id, int $amount = null, array $metadata = null ) {
-			$args =  array();
+			$args = array();
 
-			if( null !== $amount ){
+			if ( null !== $amount ) {
 				$args['amount'] = $amount;
 			}
-			if( null !== $metadata ){
+			if ( null !== $metadata ) {
 				$args['metadata'] = $metadata;
 			}
 
@@ -2663,15 +2666,15 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @param  string $fee_id    ID of the application fee refunded.
 		 * @param  string $refund_id ID of refund to retrieve.
-		 * @param  array $metadata   Set of key-value pairs that you can attach to an object. This can be useful for storing
-		 *                           additional information about the object in a structured format. Individual keys can be
-		 *                           unset by posting an empty value to them. All keys can be unset by posting an empty
-		 *                           value to metadata.
+		 * @param  array  $metadata   Set of key-value pairs that you can attach to an object. This can be useful for storing
+		 *                            additional information about the object in a structured format. Individual keys can be
+		 *                            unset by posting an empty value to them. All keys can be unset by posting an empty
+		 *                            value to metadata.
 		 * @return array             Returns the application fee refund object if the update succeeded. This call will
 		 *                           return an error if update parameters are invalid.
 		 */
 		public function update_application_fee_refund( string $fee_id, string $refund_id, array $metadata = null ) {
-			if( null !== $metadata ){
+			if ( null !== $metadata ) {
 				$args = array( 'metadata' => $metadata );
 			}
 
@@ -2719,13 +2722,13 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @see https://stripe.com/docs/api/curl#list_country_specs Documentation
 		 *
-		 * @param  array  $args Optional args to send to request.
+		 * @param  array $args Optional args to send to request.
 		 * @return array        A dictionary with a data property that contains an array of up to limit application fees,
 		 *                      starting after application fee starting_after. Each entry in the array is a separate
 		 *                      application fee object. If no more fees are available, the resulting array will be empty.
 		 */
 		public function list_application_fees( $args = array() ) {
-			return $this->run( "application_fees", $args );
+			return $this->run( 'application_fees', $args );
 		}
 
 		/* COUNTRY SPECS. */
@@ -2735,11 +2738,11 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @see https://stripe.com/docs/api/curl#list_application_fees Documentation
 		 *
-		 * @param  array  $args Optional args to send to request.
+		 * @param  array $args Optional args to send to request.
 		 * @return array        Returns a list of country_spec objects.
 		 */
 		public function list_country_specs( $args = array() ) {
-			return $this->run( "country_specs", $args );
+			return $this->run( 'country_specs', $args );
 		}
 
 		/**
@@ -2773,7 +2776,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array  $args           Optional args to send to request.
 		 * @return array                  Returns the bank account object.
 		 */
-		public function create_external_bank_account( $account_id, $ext_account_id, $args = array() ){
+		public function create_external_bank_account( $account_id, $ext_account_id, $args = array() ) {
 			$args['external_account'] = $ext_account_id;
 			return $this->run( "accounts/$account_id/external_accounts", $args, 'POST' );
 		}
@@ -2789,7 +2792,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  string $ext_account_id Bank account ID.
 		 * @return array                  Returns the bank account object.
 		 */
-		public function retrieve_external_bank_account( string $account_id, string $bank_account_id ){
+		public function retrieve_external_bank_account( string $account_id, string $bank_account_id ) {
 			return $this->run( "accounts/$account_id/external_accounts/$bank_account_id" );
 		}
 
@@ -2806,7 +2809,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array  $args            Additional args.
 		 * @return array                   Returns the bank account object.
 		 */
-		public function update_external_bank_account( string $account_id, string $bank_account_id, $args = array() ){
+		public function update_external_bank_account( string $account_id, string $bank_account_id, $args = array() ) {
 			return $this->run( "accounts/$account_id/external_accounts/$bank_account_id", $args, 'POST' );
 		}
 
@@ -2823,7 +2826,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  string $bank_account_id The ID of the external account to be deleted.
 		 * @return string                  Returns the deleted bank account object.
 		 */
-		public function delete_external_bank_account( string $account_id, string $bank_account_id ){
+		public function delete_external_bank_account( string $account_id, string $bank_account_id ) {
 			return $this->run( "accounts/$account_id/external_accounts/$bank_account_id", array(), 'DELETE' );
 		}
 
@@ -2838,7 +2841,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array  $args       Additional args to send to request.
 		 * @return array              Returns a list of the bank accounts stored on the Custom account.
 		 */
-		public function list_external_bank_accounts( string $account_id, array $args = array() ){
+		public function list_external_bank_accounts( string $account_id, array $args = array() ) {
 			$args['object'] = 'bank_account';
 			return $this->run( "accounts/$account_id/external_accounts", $args );
 		}
@@ -2859,7 +2862,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array  $args           Additional args.
 		 * @return array                  Returns the card object.
 		 */
-		public function create_external_card( string $account_id, string $ext_account_id, $args = array() ){
+		public function create_external_card( string $account_id, string $ext_account_id, $args = array() ) {
 			$args['external_account'] = $ext_account_id;
 			return $this->run( "accounts/$account_id/external_accounts", $args, 'POST' );
 		}
@@ -2874,7 +2877,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  string $card_id    External card ID.
 		 * @return array              Returns the card object.
 		 */
-		public function retrieve_external_card( string $account_id, string $card_id ){
+		public function retrieve_external_card( string $account_id, string $card_id ) {
 			return $this->run( "accounts/$account_id/external_accounts/$card_id" );
 		}
 
@@ -2890,7 +2893,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array  $args       Additional args.
 		 * @return array              Returns the card object.
 		 */
-		public function update_external_card( string $account_id, string $card_id, $args = array() ){
+		public function update_external_card( string $account_id, string $card_id, $args = array() ) {
 			return $this->run( "accounts/$account_id/external_accounts/$card_id", $args, 'POST' );
 		}
 
@@ -2907,7 +2910,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  string $card_id    The ID of the external account to be deleted.
 		 * @return array              Returns the deleted card object.
 		 */
-		public function delete_external_card( string $account_id, string $card_id ){
+		public function delete_external_card( string $account_id, string $card_id ) {
 			return $this->run( "accounts/$account_id/external_accounts/$card_id", array(), 'DELETE' );
 		}
 
@@ -2922,7 +2925,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  array  $args       Additional args.
 		 * @return array              Returns a list of the cards stored on the account.
 		 */
-		public function list_external_cards( string $account_id, array $args = array() ){
+		public function list_external_cards( string $account_id, array $args = array() ) {
 			$args['object'] = 'card';
 			return $this->run( "accounts/$account_id/external_accounts", $args );
 		}
@@ -2942,10 +2945,10 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return array               Returns a transfer object if there were no initial errors with the transfer creation
 		 *                             (e.g., insufficient funds).
 		 */
-		public function create_transfer( int $amount, string $currency, string $destination, $args = array() ){
-			$args = array_merge( compact ( 'amount', 'currency', 'destination' ), $args );
+		public function create_transfer( int $amount, string $currency, string $destination, $args = array() ) {
+			$args = array_merge( compact( 'amount', 'currency', 'destination' ), $args );
 
-			return $this->run( "transfers", $args, 'POST' );
+			return $this->run( 'transfers', $args, 'POST' );
 		}
 
 		/**
@@ -2978,7 +2981,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return array               Returns the transfer object if the update succeeded. This call will return an error
 		 *                             if update parameters are invalid.
 		 */
-		public function update_transfer( string $transfer_id, array $metadata = null) {
+		public function update_transfer( string $transfer_id, array $metadata = null ) {
 			$args = ( null !== $metadata ) ? array( 'metadata' => $metadata ) : array();
 
 			return $this->run( "transfers/$transfer_id", $args, 'POST' );
@@ -2990,13 +2993,13 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @see https://stripe.com/docs/api/curl#list_transfers Documentation
 		 *
-		 * @param  array  $args Additional args.
+		 * @param  array $args Additional args.
 		 * @return array        A dictionary with a data property that contains an array of up to limit transfers, starting
 		 *                      after transfer starting_after. Each entry in the array is a separate transfer object. If no
 		 *                      more transfers are available, the resulting array will be empty
 		 */
-		public function list_transfers( $args = array() ){
-			return $this->run( "transfers", $args );
+		public function list_transfers( $args = array() ) {
+			return $this->run( 'transfers', $args );
 		}
 
 		/* TRANSFER REVERSALS. */
@@ -3017,7 +3020,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return array               Returns a transfer reversal object if the reversal succeeded. Returns an error if the
 		 *                             transfer has already been reversed or an invalid transfer identifier was provided.
 		 */
-		public function create_transfer_reversal( string $transfer_id, $args = array() ){
+		public function create_transfer_reversal( string $transfer_id, $args = array() ) {
 			return $this->run( "transfers/$transfer_id/reversals", $args, 'POST' );
 		}
 
@@ -3031,7 +3034,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  string $reversal_id ID of reversal to retrieve.
 		 * @return array               Returns the reversal object.
 		 */
-		public function retrieve_transfer_reversal( string $transfer_id, string $reversal_id ){
+		public function retrieve_transfer_reversal( string $transfer_id, string $reversal_id ) {
 			return $this->run( "transfers/$transfer_id/reversals/$reversal_id" );
 		}
 
@@ -3048,7 +3051,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return array               Returns the reversal object if the update succeeded. This call will return an error
 		 *                             if update parameters are invalid.
 		 */
-		public function update_transfer_reversal( string $transfer_id, string $reversal_id, array $metadata = null) {
+		public function update_transfer_reversal( string $transfer_id, string $reversal_id, array $metadata = null ) {
 			$args = ( null !== $metadata ) ? array( 'metadata' => $metadata ) : array();
 
 			return $this->run( "transfers/$transfer_id/reversals", $args, 'POST' );
@@ -3087,7 +3090,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 */
 		public function create_order( string $currency, $args = array() ) {
 			$args['currency'] = $currency;
-			return $this->run( "orders", $args, 'POST' );
+			return $this->run( 'orders', $args, 'POST' );
 		}
 
 		/**
@@ -3136,14 +3139,14 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @see https://stripe.com/docs/api/curl#list_orders Documentation
 		 *
-		 * @param  array  $args Additional args.
+		 * @param  array $args Additional args.
 		 * @return array        A dictionary with a data property that contains an array of up to limit orders, starting
 		 *                      after order starting_after. Each entry in the array is a separate order object. If no more
 		 *                      orders are available, the resulting array will be empty. This request should never return
 		 *                      an error.
 		 */
 		public function list_orders( $args = array() ) {
-			return $this->run( "orders" );
+			return $this->run( 'orders' );
 		}
 
 		/**
@@ -3159,7 +3162,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                          the dictionary contains the property amount to indicate the total price of the items
 		 *                          returned.
 		 */
-		public function return_order( string $order_id, $args = array()) {
+		public function return_order( string $order_id, $args = array() ) {
 			return $this->run( "orders/$order_id/returns", $args, 'POST' );
 		}
 
@@ -3174,7 +3177,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  string $order_return_id The identifier of the order return to be retrieved.
 		 * @return array                   Returns an order return object if a valid identifier was provided.
 		 */
-		public function retrieve_order_return( string $order_return_id) {
+		public function retrieve_order_return( string $order_return_id ) {
 			return $this->run( "order_returns/$order_return_id" );
 		}
 
@@ -3184,14 +3187,14 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @see https://stripe.com/docs/api/curl#list_order_returns Documentation
 		 *
-		 * @param  array  $args  Additional args.
+		 * @param  array $args  Additional args.
 		 * @return array         A dictionary with a data property that contains an array of up to limit order returns,
 		 *                       starting after starting_after. Each entry in the array is a separate order return object.
 		 *                       If no more returns are available, the resulting array will be empty. This request should
 		 *                       never return an error.
 		 */
 		public function list_order_returns( $args = array() ) {
-			return $this->run( "order_returns", $args );
+			return $this->run( 'order_returns', $args );
 		}
 
 		/* SKUS. */
@@ -3211,8 +3214,8 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @return array             Returns a SKU object if the call succeeded.
 		 */
 		public function create_sku( string $currency, array $inventory, int $price, string $product, $args = array() ) {
-			$args = array_merge( compact ( 'currency', 'inventory', 'price', 'product' ), $args );
-			return $this->run( "skus", $args, 'POST' );
+			$args = array_merge( compact( 'currency', 'inventory', 'price', 'product' ), $args );
+			return $this->run( 'skus', $args, 'POST' );
 		}
 
 		/**
@@ -3251,7 +3254,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @see https://stripe.com/docs/api/curl#list_skus Documentation
 		 *
-		 * @param  array  $args Additional args.
+		 * @param  array $args Additional args.
 		 * @return array        A dictionary with a data property that contains an array of up to limit SKUs, starting after
 		 *                      SKU starting_after. Each entry in the array is a separate SKU object. If no more SKUs are
 		 *                      available, the resulting array will be empty. If you provide a non-existent product ID, this
@@ -3259,7 +3262,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *                      is not supported by the specified product, this request will return an error.
 		 */
 		public function list_skus( $args = array() ) {
-			return $this->run( "skus", $args );
+			return $this->run( 'skus', $args );
 		}
 
 		/**
@@ -3286,7 +3289,7 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 * @param  string $scheduled_query_run_id Unique identifier for the object.
 		 * @return array                          Returns the scheduled query run object if a valid identifier was provided.
 		 */
-		public function retrieve_scheduled_query_run( string $scheduled_query_run_id) {
+		public function retrieve_scheduled_query_run( string $scheduled_query_run_id ) {
 			return $this->run( "scheduled_query_runs/$scheduled_query_run_id" );
 		}
 
@@ -3295,11 +3298,11 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 		 *
 		 * @see https://stripe.com/docs/api/curl#list_scheduled_query_run Documentation
 		 *
-		 * @param  array  $args Additional args.
+		 * @param  array $args Additional args.
 		 * @return array        A paginated list of all scheduled query runs.
 		 */
 		public function list_scheduled_query_runs( $args = array() ) {
-			return $this->run( "scheduled_query_runs", $args );
+			return $this->run( 'scheduled_query_runs', $args );
 		}
 
 		/* ------------------- ERROR CODES --------------------- */
@@ -3316,37 +3319,37 @@ if ( ! class_exists( 'StripeAPI' ) ) {
 			switch ( $code ) {
 				case 200:
 					$msg = __( 'OK. Everything worked as expected.', 'wp-stripe-api' );
-				break;
+					break;
 				case 400:
 					$msg = __( 'Bad Request: The request was unacceptable, often due to missing a required parameter.', 'wp-stripe-api' );
-				break;
+					break;
 				case 401:
 					$msg = __( 'Unauthorized: No valid API key provided.', 'wp-stripe-api' );
-				break;
+					break;
 				case 402:
 					$msg = __( 'Request Failed: The parameters were valid but the request failed.', 'wp-stripe-api' );
-				break;
+					break;
 				case 404:
 					$msg = __( 'Not Found: The requested resource does not exist.', 'wp-stripe-api' );
-				break;
+					break;
 				case 409:
 					$msg = __( 'Conflict: The request conflicts with another request (perhaps due to using the same idempotent key).', 'wp-stripe-api' );
-				break;
+					break;
 				case 429:
 					$msg = __( 'Too Many Requests: Too many requests hit the API too quickly. We recommend an exponential backoff of your requests.', 'wp-stripe-api' );
-				break;
+					break;
 				case 500:
 					$msg = __( 'Server Errors: Something went wrong on Stripe\'s end. (These are rare.)', 'wp-stripe-api' );
-				break;
+					break;
 				case 502:
 					$msg = __( 'Server Errors: Something went wrong on Stripe\'s end. (These are rare.)', 'wp-stripe-api' );
-				break;
+					break;
 				case 503:
 					$msg = __( 'Server Errors: Something went wrong on Stripe\'s end. (These are rare.)', 'wp-stripe-api' );
-				break;
+					break;
 				case 504:
 					$msg = __( 'Server Errors: Something went wrong on Stripe\'s end. (These are rare.)', 'wp-stripe-api' );
-				break;
+					break;
 			}
 		}
 
